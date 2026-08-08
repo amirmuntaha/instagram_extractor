@@ -23,10 +23,11 @@ function hideSpinner() {
 }
 
 /**
- * Show feedback to the user about what data was automatically fetched
- * @param {string[]} fetchedFields - Array of field names that were successfully fetched
+ * Show feedback/guidance to the user about the embed reference flow
+ * @param {string} message - The guidance message to display
+ * @param {string} type - 'info', 'success', or 'warning'
  */
-function showFetchFeedback(fetchedFields) {
+function showFetchFeedback(message, type) {
     // Remove any existing feedback element
     const existingFeedback = document.getElementById('fetch-feedback');
     if (existingFeedback) {
@@ -37,54 +38,64 @@ function showFetchFeedback(fetchedFields) {
     feedbackEl.id = 'fetch-feedback';
     feedbackEl.style.cssText = 'padding: 10px 15px; border-radius: 8px; margin-top: 10px; font-size: 0.85rem; line-height: 1.4;';
 
-    if (fetchedFields.length === 0) {
-        // No data was fetched
-        feedbackEl.style.backgroundColor = '#fff3cd';
-        feedbackEl.style.color = '#856404';
-        feedbackEl.style.border = '1px solid #ffc107';
-        const strong = document.createElement('strong');
-        strong.textContent = 'Auto-fetch was unable to retrieve data.';
-        feedbackEl.appendChild(strong);
-        feedbackEl.appendChild(document.createTextNode(' Instagram may be blocking requests. Please fill in the fields manually (username, caption, image URL) and click "Update Poster".'));
-    } else if (fetchedFields.length < 3) {
-        // Partial data fetched
-        const missing = ['username', 'caption', 'image'].filter(f => !fetchedFields.includes(f));
+    if (type === 'info') {
         feedbackEl.style.backgroundColor = '#d1ecf1';
         feedbackEl.style.color = '#0c5460';
         feedbackEl.style.border = '1px solid #bee5eb';
-        const strong = document.createElement('strong');
-        strong.textContent = 'Partially auto-filled!';
-        feedbackEl.appendChild(strong);
-        feedbackEl.appendChild(document.createTextNode(' Fetched: ' + fetchedFields.join(', ') + '. Please manually enter: ' + missing.join(', ') + '.'));
-    } else {
-        // All data fetched
+    } else if (type === 'success') {
         feedbackEl.style.backgroundColor = '#d4edda';
         feedbackEl.style.color = '#155724';
         feedbackEl.style.border = '1px solid #c3e6cb';
-        const strong = document.createElement('strong');
-        strong.textContent = 'Successfully auto-filled!';
-        feedbackEl.appendChild(strong);
-        feedbackEl.appendChild(document.createTextNode(' All available data was fetched from Instagram.'));
+    } else {
+        feedbackEl.style.backgroundColor = '#fff3cd';
+        feedbackEl.style.color = '#856404';
+        feedbackEl.style.border = '1px solid #ffc107';
     }
+
+    feedbackEl.textContent = message;
 
     // Insert feedback after the generate button area
     const btn = document.getElementById('generate-btn');
     const parent = btn.parentElement;
     parent.insertAdjacentElement('afterend', feedbackEl);
 
-    // Auto-dismiss after 10 seconds
+    // Auto-dismiss after 15 seconds
     setTimeout(() => {
         if (feedbackEl.parentElement) {
             feedbackEl.style.transition = 'opacity 0.5s';
             feedbackEl.style.opacity = '0';
             setTimeout(() => feedbackEl.remove(), 500);
         }
-    }, 10000);
+    }, 15000);
+}
+
+/**
+ * Display the Instagram embed iframe for the given shortcode
+ * @param {string} shortcode - The Instagram post shortcode
+ */
+function showInstagramEmbed(shortcode) {
+    const container = document.getElementById('embed-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    container.style.display = 'block';
+
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://www.instagram.com/p/${shortcode}/embed/`;
+    iframe.id = 'instagram-embed-iframe';
+    iframe.width = '100%';
+    iframe.height = '480';
+    iframe.frameBorder = '0';
+    iframe.scrolling = 'no';
+    iframe.allowTransparency = 'true';
+    iframe.setAttribute('allow', 'encrypted-media');
+    container.appendChild(iframe);
 }
 
 /**
  * Generate poster from Instagram URL
- * Uses Instagram's oEmbed endpoint to fetch post data
+ * Shows an Instagram embed iframe for visual reference and guides the user
+ * to manually fill in the form fields.
  */
 async function generatePoster() {
     const urlInput = document.getElementById('instagram-url');
@@ -106,33 +117,27 @@ async function generatePoster() {
     showSpinner();
 
     try {
-        // Try fetching data via Instagram CORS proxy
-        const postData = await fetchInstagramData(url);
-        
-        if (postData) {
-            // Populate manual fields with fetched data
-            if (postData.username) {
-                document.getElementById('username').value = postData.username;
-            }
-            if (postData.caption) {
-                document.getElementById('caption').value = postData.caption;
-            }
-            if (postData.imageUrl) {
-                document.getElementById('post-image').value = postData.imageUrl;
-            }
+        // Extract shortcode from URL
+        const { shortcode } = extractFromUrl(url);
 
-            // Provide user feedback about fetch results
-            showFetchFeedback(postData.fetchedFields || []);
+        // Show Instagram embed iframe as visual reference
+        if (shortcode) {
+            showInstagramEmbed(shortcode);
         }
 
-        // Update poster with whatever data we have
+        // Show guidance message
+        showFetchFeedback(
+            'Use the embedded post below as reference to fill in the details manually (username, caption, image URL), then click "Update Poster".',
+            'info'
+        );
+
+        // Update poster with the URL for QR code generation
         updatePosterFromData(url);
 
     } catch (error) {
-        console.error('Error fetching Instagram data:', error);
-        // Still update poster with the URL for QR code
+        console.error('Error generating poster:', error);
         updatePosterFromData(url);
-        showFetchFeedback([]);
+        showFetchFeedback('Something went wrong. Please fill in the fields manually and click "Update Poster".', 'warning');
     } finally {
         btn.textContent = 'Generate Poster';
         btn.disabled = false;
@@ -153,246 +158,17 @@ function isValidInstagramUrl(url) {
 }
 
 /**
- * Validate that an image URL is a safe Instagram CDN URL
- * Only allows https:// URLs from known Instagram/Facebook CDN domains
+ * Validate that an image URL is a valid HTTPS URL
+ * Accepts any well-formed HTTPS URL (not restricted to Instagram CDN)
  */
 function isValidInstagramImageUrl(url) {
     if (!url || typeof url !== 'string') return false;
     try {
         const parsed = new URL(url);
-        if (parsed.protocol !== 'https:') return false;
-        const hostname = parsed.hostname;
-        // Allow known Instagram/Facebook CDN domains
-        const allowedPatterns = [
-            /^scontent.*\.cdninstagram\.com$/,
-            /^instagram\..+\.fna\.fbcdn\.net$/,
-            /^scontent.*\.fbcdn\.net$/,
-            /^.*\.cdninstagram\.com$/,
-            /^.*\.fbcdn\.net$/
-        ];
-        return allowedPatterns.some(pattern => pattern.test(hostname));
+        return parsed.protocol === 'https:';
     } catch (e) {
         return false;
     }
-}
-
-/**
- * List of CORS proxy services to try in order
- */
-const CORS_PROXIES = [
-    (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-];
-
-/**
- * Attempt to fetch a URL through multiple CORS proxy services in parallel
- * Uses Promise.any to race all proxies and return the first successful response
- * Returns the response text on success, or null on failure
- */
-async function fetchViaCorsProxy(targetUrl) {
-    const promises = CORS_PROXIES.map(proxyFn => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        const proxyUrl = proxyFn(targetUrl);
-        return fetch(proxyUrl, { signal: controller.signal })
-            .then(response => {
-                clearTimeout(timeoutId);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return response.text();
-            })
-            .then(text => {
-                if (!text || text.length <= 100) throw new Error('Response too short');
-                return text;
-            })
-            .catch(err => {
-                clearTimeout(timeoutId);
-                console.warn(`CORS proxy attempt failed for ${targetUrl}:`, err.message);
-                throw err;
-            });
-    });
-
-    try {
-        return await Promise.any(promises);
-    } catch (err) {
-        // All proxies failed
-        return null;
-    }
-}
-
-/**
- * Parse Instagram page HTML to extract post data from meta tags and embedded JSON
- */
-function parseInstagramHtml(html) {
-    const result = { username: '', caption: '', imageUrl: '' };
-
-    try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        // Try og:image meta tag
-        const ogImage = doc.querySelector('meta[property="og:image"]');
-        if (ogImage && ogImage.getAttribute('content')) {
-            result.imageUrl = ogImage.getAttribute('content');
-        }
-
-        // Try og:description meta tag (often contains "username: caption")
-        const ogDesc = doc.querySelector('meta[property="og:description"]');
-        if (ogDesc && ogDesc.getAttribute('content')) {
-            const descContent = ogDesc.getAttribute('content');
-            // Instagram og:description format is typically: "N Likes, N Comments - @username on Instagram: "caption""
-            const usernameMatch = descContent.match(/@([\w.]+)\s+on\s+Instagram/i);
-            if (usernameMatch) {
-                result.username = usernameMatch[1];
-            }
-            const captionMatch = descContent.match(/Instagram:\s*["\u201C](.+?)["\u201D]/s);
-            if (captionMatch) {
-                result.caption = captionMatch[1];
-            } else {
-                // Fallback: try to grab text after the username part
-                const afterUsername = descContent.match(/on\s+Instagram:\s*(.+)/is);
-                if (afterUsername) {
-                    result.caption = afterUsername[1].replace(/^["'\u201C]+|["'\u201D]+$/g, '').trim();
-                }
-            }
-        }
-
-        // Try to find embedded JSON-LD data
-        const ldJsonScripts = doc.querySelectorAll('script[type="application/ld+json"]');
-        for (const script of ldJsonScripts) {
-            try {
-                const jsonData = JSON.parse(script.textContent);
-                if (jsonData.author && jsonData.author.alternateName) {
-                    result.username = result.username || jsonData.author.alternateName.replace('@', '');
-                }
-                if (jsonData.caption) {
-                    result.caption = result.caption || jsonData.caption;
-                }
-                if (jsonData.image) {
-                    result.imageUrl = result.imageUrl || (Array.isArray(jsonData.image) ? jsonData.image[0] : jsonData.image);
-                }
-            } catch (e) {
-                // JSON parse failed for this script tag, skip
-            }
-        }
-
-        // Try to find _sharedData or additional_data in script tags
-        const scripts = doc.querySelectorAll('script');
-        for (const script of scripts) {
-            const content = script.textContent || '';
-            // Look for window._sharedData pattern
-            const sharedDataMatch = content.match(/window\._sharedData\s*=\s*(\{.+?\});\s*<\/script/s) ||
-                                    content.match(/window\._sharedData\s*=\s*(\{.+?\});$/m);
-            if (sharedDataMatch) {
-                try {
-                    const sharedData = JSON.parse(sharedDataMatch[1]);
-                    const media = sharedData?.entry_data?.PostPage?.[0]?.graphql?.shortcode_media;
-                    if (media) {
-                        result.username = result.username || media.owner?.username || '';
-                        result.caption = result.caption || media.edge_media_to_caption?.edges?.[0]?.node?.text || '';
-                        result.imageUrl = result.imageUrl || media.display_url || '';
-                    }
-                } catch (e) {
-                    // JSON parse failed, skip
-                }
-            }
-        }
-    } catch (err) {
-        console.warn('Error parsing Instagram HTML:', err);
-    }
-
-    return result;
-}
-
-/**
- * Parse Instagram embed page HTML to extract post data
- */
-function parseInstagramEmbed(html) {
-    const result = { username: '', caption: '', imageUrl: '' };
-
-    try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        // Embed pages often have the username in a specific element
-        const usernameEl = doc.querySelector('.UsernameText') ||
-                           doc.querySelector('a.FPmhX') ||
-                           doc.querySelector('header a');
-        if (usernameEl && usernameEl.textContent) {
-            result.username = usernameEl.textContent.trim().replace('@', '');
-        }
-
-        // Try to get image from the embed
-        const img = doc.querySelector('img.EmbeddedMediaImage') ||
-                    doc.querySelector('.Content img') ||
-                    doc.querySelector('img[srcset]') ||
-                    doc.querySelector('img[src*="instagram"]');
-        if (img) {
-            result.imageUrl = img.getAttribute('src') || '';
-        }
-
-        // Caption from embed
-        const captionEl = doc.querySelector('.Caption') ||
-                          doc.querySelector('div[class*="caption"]') ||
-                          doc.querySelector('.CaptionContent');
-        if (captionEl && captionEl.textContent) {
-            result.caption = captionEl.textContent.trim();
-        }
-
-        // Also check for og meta tags in embed page
-        const ogImage = doc.querySelector('meta[property="og:image"]');
-        if (ogImage && ogImage.getAttribute('content')) {
-            result.imageUrl = result.imageUrl || ogImage.getAttribute('content');
-        }
-    } catch (err) {
-        console.warn('Error parsing Instagram embed HTML:', err);
-    }
-
-    return result;
-}
-
-/**
- * Fetch Instagram post data using CORS proxy services with multiple fallback strategies
- */
-async function fetchInstagramData(url) {
-    const baseData = extractFromUrl(url);
-    const result = { ...baseData };
-
-    try {
-        // Strategy 1: Fetch the main Instagram page via CORS proxy
-        const pageHtml = await fetchViaCorsProxy(url);
-        if (pageHtml) {
-            const parsed = parseInstagramHtml(pageHtml);
-            if (parsed.username) result.username = parsed.username;
-            if (parsed.caption) result.caption = parsed.caption;
-            if (parsed.imageUrl) result.imageUrl = parsed.imageUrl;
-        }
-
-        // Strategy 2: If we still need data, try the embed endpoint
-        if (!result.username || !result.imageUrl) {
-            const shortcode = baseData.shortcode;
-            if (shortcode) {
-                const embedUrl = `https://www.instagram.com/p/${shortcode}/embed/`;
-                const embedHtml = await fetchViaCorsProxy(embedUrl);
-                if (embedHtml) {
-                    const embedParsed = parseInstagramEmbed(embedHtml);
-                    if (!result.username && embedParsed.username) result.username = embedParsed.username;
-                    if (!result.caption && embedParsed.caption) result.caption = embedParsed.caption;
-                    if (!result.imageUrl && embedParsed.imageUrl) result.imageUrl = embedParsed.imageUrl;
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error during Instagram data fetch:', error);
-    }
-
-    // Set a flag indicating what data was successfully fetched
-    result.fetchedFields = [];
-    if (result.username) result.fetchedFields.push('username');
-    if (result.caption) result.fetchedFields.push('caption');
-    if (result.imageUrl) result.fetchedFields.push('image');
-
-    return result;
 }
 
 /**

@@ -199,198 +199,89 @@ test.describe('Instagram Post Poster Generator', () => {
     await expect(copyBtn).not.toHaveText('Copying...', { timeout: 10000 });
   });
 
-  test('autofill populates form fields when fetch succeeds (mocked)', async ({ page }) => {
+  test('generate poster shows embed container with correct iframe src', async ({ page }) => {
     await page.goto('/');
 
-    // Mock CORS proxy responses to simulate a successful Instagram data fetch
-    const fakeInstagramHtml = `
-      <html>
-      <head>
-        <meta property="og:image" content="https://scontent-iad3-1.cdninstagram.com/fake-image.jpg" />
-        <meta property="og:description" content="42 Likes, 3 Comments - @testcreator on Instagram: &quot;This is a test caption from Instagram&quot;" />
-      </head>
-      <body></body>
-      </html>
-    `;
-
-    // Intercept requests to CORS proxy services and return our fake HTML
-    await page.route('**/api.codetabs.com/**', (route) => {
-      route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: fakeInstagramHtml
-      });
+    // Block Instagram embed requests so the test doesn't wait for network
+    await page.route('**/instagram.com/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
 
-    await page.route('**/corsproxy.io/**', (route) => {
-      route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: fakeInstagramHtml
-      });
-    });
-
-    await page.route('**/api.allorigins.win/**', (route) => {
-      route.fulfill({
-        status: 200,
-        contentType: 'text/html',
-        body: fakeInstagramHtml
-      });
-    });
-
-    // Enter a valid Instagram URL and generate
-    await page.fill('#instagram-url', 'https://www.instagram.com/p/TEST_AUTOFILL/');
+    // Enter a valid Instagram URL
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/TEST_SHORTCODE/');
     await page.click('#generate-btn');
 
     // Wait for the button to re-enable (generation complete)
-    await expect(page.locator('#generate-btn')).toBeEnabled({ timeout: 15000 });
+    await expect(page.locator('#generate-btn')).toBeEnabled();
 
-    // Verify form fields were auto-populated with the mocked data
-    const usernameField = page.locator('#username');
-    await expect(usernameField).toHaveValue('testcreator');
+    // Verify embed container is visible
+    const embedContainer = page.locator('#embed-container');
+    await expect(embedContainer).toBeVisible();
 
-    const captionField = page.locator('#caption');
-    await expect(captionField).toHaveValue('This is a test caption from Instagram');
-
-    const imageField = page.locator('#post-image');
-    await expect(imageField).toHaveValue('https://scontent-iad3-1.cdninstagram.com/fake-image.jpg');
-
-    // Verify the poster was updated with this data
-    const posterUsername = page.locator('#poster-username');
-    await expect(posterUsername).toHaveText('@testcreator');
-
-    const posterCaption = page.locator('#poster-caption');
-    await expect(posterCaption).toContainText('This is a test caption from Instagram');
-
-    // Verify the feedback message indicates success
-    const feedback = page.locator('#fetch-feedback');
-    await expect(feedback).toBeVisible();
-    await expect(feedback).toContainText('auto-filled');
+    // Verify iframe exists with correct src containing the shortcode
+    const iframe = page.locator('#instagram-embed-iframe');
+    await expect(iframe).toBeAttached();
+    const src = await iframe.getAttribute('src');
+    expect(src).toContain('TEST_SHORTCODE');
+    expect(src).toContain('/embed/');
+    expect(src).toBe('https://www.instagram.com/p/TEST_SHORTCODE/embed/');
   });
 
-  test('autofill gracefully degrades when fetch fails', async ({ page }) => {
+  test('generate poster shows guidance feedback message', async ({ page }) => {
     await page.goto('/');
 
-    // Mock CORS proxy responses to simulate failure (return empty/error)
-    await page.route('**/api.codetabs.com/**', (route) => {
-      route.fulfill({ status: 503, body: 'Service Unavailable' });
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
 
-    await page.route('**/corsproxy.io/**', (route) => {
-      route.fulfill({ status: 503, body: 'Service Unavailable' });
+    // Enter a valid Instagram URL
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/FEEDBACK_TEST/');
+    await page.click('#generate-btn');
+
+    // Wait for the button to re-enable (generation complete)
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Verify the feedback/guidance message appears
+    const feedback = page.locator('#fetch-feedback');
+    await expect(feedback).toBeVisible();
+    await expect(feedback).toContainText('embedded post below');
+    await expect(feedback).toContainText('fill in the details manually');
+  });
+
+  test('generate poster creates QR code with post URL', async ({ page }) => {
+    await page.goto('/');
+
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
 
-    await page.route('**/api.allorigins.win/**', (route) => {
-      route.fulfill({ status: 503, body: 'Service Unavailable' });
-    });
-
-    // Track page errors to ensure none are thrown
+    // Track page errors
     const pageErrors = [];
     page.on('pageerror', (error) => {
       pageErrors.push(error.message);
     });
 
     // Enter a valid Instagram URL
-    await page.fill('#instagram-url', 'https://www.instagram.com/p/FAIL_TEST/');
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/QR_TEST/');
     await page.click('#generate-btn');
 
     // Wait for the button to re-enable (generation complete)
-    await expect(page.locator('#generate-btn')).toBeEnabled({ timeout: 15000 });
+    await expect(page.locator('#generate-btn')).toBeEnabled();
 
-    // No uncaught page errors should have occurred
-    expect(pageErrors).toHaveLength(0);
-
-    // The poster should still be rendered (QR code generated)
+    // Verify QR code is generated
     const qrChild = page.locator('#qr-code canvas, #qr-code img');
     await expect(qrChild.first()).toBeAttached();
+    const count = await qrChild.count();
+    expect(count).toBeGreaterThan(0);
 
-    // Feedback should indicate that auto-fetch failed
-    const feedback = page.locator('#fetch-feedback');
-    await expect(feedback).toBeVisible();
-    await expect(feedback).toContainText('unable to retrieve data');
-  });
+    // No page errors should have occurred
+    expect(pageErrors).toHaveLength(0);
 
-  test('embed fallback is used when main page lacks data (Strategy 2)', async ({ page }) => {
-    await page.goto('/');
-
-    // Strategy 1: main page returns HTML without useful og:image or username
-    const emptyMainPageHtml = `
-      <html>
-      <head>
-        <meta property="og:title" content="Login" />
-        <meta property="og:description" content="Sign in to Instagram" />
-      </head>
-      <body><h1>Login Required</h1></body>
-      </html>
-    `;
-
-    // Strategy 2: embed page returns HTML with post data
-    const embedHtml = `
-      <html>
-      <head>
-        <meta property="og:image" content="https://scontent-iad3-2.cdninstagram.com/embed-image.jpg" />
-      </head>
-      <body>
-        <header><a class="FPmhX" href="/embeduser/">embeduser</a></header>
-        <div class="Caption"><div class="CaptionContent">Embed caption text here</div></div>
-        <img class="EmbeddedMediaImage" src="https://scontent-iad3-2.cdninstagram.com/embed-image.jpg" />
-      </body>
-      </html>
-    `;
-
-    // Route main page requests (non-embed URLs) to return empty data
-    await page.route('**/api.codetabs.com/**', (route, request) => {
-      const url = request.url();
-      if (url.includes('embed')) {
-        route.fulfill({ status: 200, contentType: 'text/html', body: embedHtml });
-      } else {
-        route.fulfill({ status: 200, contentType: 'text/html', body: emptyMainPageHtml });
-      }
-    });
-
-    await page.route('**/corsproxy.io/**', (route, request) => {
-      const url = request.url();
-      if (url.includes('embed')) {
-        route.fulfill({ status: 200, contentType: 'text/html', body: embedHtml });
-      } else {
-        route.fulfill({ status: 200, contentType: 'text/html', body: emptyMainPageHtml });
-      }
-    });
-
-    await page.route('**/api.allorigins.win/**', (route, request) => {
-      const url = request.url();
-      if (url.includes('embed')) {
-        route.fulfill({ status: 200, contentType: 'text/html', body: embedHtml });
-      } else {
-        route.fulfill({ status: 200, contentType: 'text/html', body: emptyMainPageHtml });
-      }
-    });
-
-    // Enter a valid Instagram URL and generate
-    await page.fill('#instagram-url', 'https://www.instagram.com/p/EMBED_TEST/');
-    await page.click('#generate-btn');
-
-    // Wait for the button to re-enable (generation complete)
-    await expect(page.locator('#generate-btn')).toBeEnabled({ timeout: 15000 });
-
-    // Verify form fields were populated from the embed fallback
-    const usernameField = page.locator('#username');
-    await expect(usernameField).toHaveValue('embeduser');
-
-    const captionField = page.locator('#caption');
-    await expect(captionField).toHaveValue('Embed caption text here');
-
-    const imageField = page.locator('#post-image');
-    await expect(imageField).toHaveValue('https://scontent-iad3-2.cdninstagram.com/embed-image.jpg');
-
-    // Verify the poster username was updated
-    const posterUsername = page.locator('#poster-username');
-    await expect(posterUsername).toHaveText('@embeduser');
-
-    // Verify feedback indicates partial or full success
-    const feedback = page.locator('#fetch-feedback');
-    await expect(feedback).toBeVisible();
-    await expect(feedback).toContainText('auto-filled');
+    // Verify the poster URL text was updated
+    const posterUrl = page.locator('#poster-url');
+    await expect(posterUrl).toContainText('QR_TEST');
   });
 
 });

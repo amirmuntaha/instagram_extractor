@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Replace broken CORS proxy fetching with Instagram embed iframe reference and improved manual-fill UX. Change isValidInstagramImageUrl() to accept any HTTPS URL. Update tests to match new behavior.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "In script.js, remove the CORS_PROXIES array, fetchViaCorsProxy() function, parseInstagramHtml() function, parseInstagramEmbed() function, and fetchInstagramData() function - all the code that attempts to fetch Instagram page HTML via proxies.",
     "In script.js, replace generatePoster() so that instead of calling fetchInstagramData(), it: (1) validates the URL, (2) extracts the shortcode from the URL, (3) shows an Instagram embed iframe as a visual reference (using https://www.instagram.com/p/{shortcode}/embed/ as iframe src), (4) auto-fills the shortcode into the poster for QR code generation, (5) shows a feedback message telling the user to view the embedded post and copy the username/caption/image URL into the manual form fields.",
@@ -29,5 +29,5 @@
     "Grep script.js for 'cdninstagram' and confirm the image URL validation no longer restricts to Instagram CDN"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 13 Playwright tests pass. CORS proxy code fully removed. isValidInstagramImageUrl now accepts any HTTPS URL. Embed container displays iframe with correct shortcode in src. Guidance feedback message shown to user. QR code generated successfully."
 }

@@ -1,0 +1,16 @@
+{
+  "name": "instagram_extractor",
+  "version": "1.0.0",
+  "description": "simple web page, input is instagram post url, and then it generates a poster like image of the post, caption, top comments and also qr code of the url",
+  "main": "script.js",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "serve": "^14.2.6"
+  }
+}

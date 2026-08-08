@@ -166,6 +166,7 @@ header .subtitle {
     border-radius: 16px;
     padding: 24px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    position: relative;
 }
 
 .poster-wrapper h3 {
@@ -339,6 +340,10 @@ header .subtitle {
 .download-section {
     text-align: center;
     margin-top: 24px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 .download-btn {
@@ -376,6 +381,196 @@ header .subtitle {
     transform: translate(-50%, -50%);
     font-weight: 600;
     color: #667eea;
+}
+
+/* Poster Container (for spinner scoping) */
+.poster-container {
+    position: relative;
+}
+
+/* Spinner Overlay */
+.spinner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    border-radius: 12px;
+}
+
+.spinner-overlay.hidden {
+    display: none;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 5px solid #e0e0e0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Theme Selector */
+.theme-selector {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.theme-selector label {
+    font-weight: 600;
+    color: #555;
+    margin-right: 8px;
+    font-size: 0.95rem;
+}
+
+.theme-selector select {
+    padding: 8px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.theme-selector select:focus {
+    border-color: #667eea;
+}
+
+/* Poster Theme: Dark */
+.poster.theme-dark {
+    background: #1a1a1a;
+    border-color: #333;
+}
+
+.poster.theme-dark .poster-header {
+    border-bottom-color: #333;
+}
+
+.poster.theme-dark .poster-username {
+    color: #e0e0e0;
+}
+
+.poster.theme-dark .poster-date {
+    color: #999;
+}
+
+.poster.theme-dark .instagram-badge {
+    color: #e0e0e0;
+}
+
+.poster.theme-dark .poster-stats {
+    color: #e0e0e0;
+    border-bottom-color: #333;
+}
+
+.poster.theme-dark .poster-caption {
+    color: #e0e0e0;
+}
+
+.poster.theme-dark .poster-comments {
+    border-bottom-color: #333;
+}
+
+.poster.theme-dark .comment {
+    color: #e0e0e0;
+}
+
+.poster.theme-dark .poster-footer {
+    background: #111;
+}
+
+.poster.theme-dark .poster-footer-text p {
+    color: #999;
+}
+
+.poster.theme-dark .poster-image-container {
+    background: #2a2a2a;
+}
+
+/* Poster Theme: Gradient */
+.poster.theme-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: transparent;
+}
+
+.poster.theme-gradient .poster-header {
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.poster.theme-gradient .poster-username {
+    color: #fff;
+}
+
+.poster.theme-gradient .poster-date {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.poster.theme-gradient .instagram-badge {
+    color: #fff;
+}
+
+.poster.theme-gradient .poster-stats {
+    color: #fff;
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.poster.theme-gradient .poster-caption {
+    color: #fff;
+}
+
+.poster.theme-gradient .poster-comments {
+    border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.poster.theme-gradient .comment {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.poster.theme-gradient .poster-footer {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.poster.theme-gradient .poster-footer-text p {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.poster.theme-gradient .poster-image-container {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Copy to Clipboard Button */
+.copy-btn {
+    padding: 14px 36px;
+    background: linear-gradient(135deg, #43a047, #2e7d32);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.copy-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(67, 160, 71, 0.4);
+}
+
+.copy-btn:active {
+    transform: translateY(0);
 }
 
 /* Responsive */

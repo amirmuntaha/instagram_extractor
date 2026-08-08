@@ -93,9 +93,38 @@ function showInstagramEmbed(shortcode) {
 }
 
 /**
+ * Attempt to fetch post data from Instagram's oEmbed JSON endpoint.
+ * Returns an object with author_name, title, thumbnail_url on success, or null on failure.
+ * @param {string} postUrl - The full Instagram post URL
+ * @returns {Promise<{author_name: string, title: string, thumbnail_url: string}|null>}
+ */
+async function fetchOEmbedData(postUrl) {
+    const oEmbedUrl = `https://api.instagram.com/oembed/?url=${encodeURIComponent(postUrl)}&format=json`;
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(oEmbedUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        // Network error, timeout, or JSON parse error
+        return null;
+    }
+}
+
+/**
  * Generate poster from Instagram URL
- * Shows an Instagram embed iframe for visual reference and guides the user
- * to manually fill in the form fields.
+ * Attempts to autofill form fields via Instagram's oEmbed API.
+ * If the oEmbed fetch fails, shows an Instagram embed iframe as visual reference
+ * and guides the user to fill in the form fields manually.
  */
 async function generatePoster() {
     const urlInput = document.getElementById('instagram-url');
@@ -125,14 +154,41 @@ async function generatePoster() {
             showInstagramEmbed(shortcode);
         }
 
-        // Show guidance message
-        showFetchFeedback(
-            'Use the embedded post below as reference to fill in the details manually (username, caption, image URL), then click "Update Poster".',
-            'info'
-        );
+        // Attempt to fetch data via oEmbed endpoint
+        const oEmbedData = await fetchOEmbedData(url);
 
-        // Update poster with the URL for QR code generation
-        updatePosterFromData(url);
+        if (oEmbedData && oEmbedData.author_name) {
+            // Success: autofill form fields from oEmbed data
+            const usernameField = document.getElementById('username');
+            const captionField = document.getElementById('caption');
+            const imageField = document.getElementById('post-image');
+
+            if (oEmbedData.author_name) {
+                usernameField.value = oEmbedData.author_name;
+            }
+            if (oEmbedData.title) {
+                captionField.value = oEmbedData.title;
+            }
+            if (oEmbedData.thumbnail_url) {
+                imageField.value = oEmbedData.thumbnail_url;
+            }
+
+            // Render the poster with autofilled data
+            updatePosterFromData(url);
+
+            showFetchFeedback(
+                'Successfully auto-filled from Instagram! You can edit the fields below if needed, then click "Update Poster" to refresh.',
+                'success'
+            );
+        } else {
+            // oEmbed failed: show guidance for manual fill
+            updatePosterFromData(url);
+
+            showFetchFeedback(
+                'Could not auto-fill data. Use the embedded post below as reference to fill in the details manually (username, caption, image URL), then click "Update Poster".',
+                'info'
+            );
+        }
 
     } catch (error) {
         console.error('Error generating poster:', error);
@@ -161,7 +217,7 @@ function isValidInstagramUrl(url) {
  * Validate that an image URL is a valid HTTPS URL
  * Accepts any well-formed HTTPS URL (not restricted to Instagram CDN)
  */
-function isValidInstagramImageUrl(url) {
+function isValidImageUrl(url) {
     if (!url || typeof url !== 'string') return false;
     try {
         const parsed = new URL(url);
@@ -216,7 +272,7 @@ function updatePosterFromData(url) {
 
     // Update image
     const imageArea = document.getElementById('poster-image-area');
-    if (imageUrl && isValidInstagramImageUrl(imageUrl)) {
+    if (imageUrl && isValidImageUrl(imageUrl)) {
         const img = document.createElement('img');
         img.src = imageUrl;
         img.alt = 'Instagram post';

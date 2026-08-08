@@ -41,6 +41,20 @@ test.describe('Instagram Post Poster Generator', () => {
   test('no error for valid Instagram URL', async ({ page }) => {
     await page.goto('/');
 
+    // Mock the oEmbed endpoint
+    await page.route('**/api.instagram.com/oembed/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ author_name: 'user', title: '', thumbnail_url: '' })
+      });
+    });
+
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
     // Fill in a valid Instagram URL
     await page.fill('#instagram-url', 'https://www.instagram.com/p/ABC123/');
 
@@ -141,6 +155,18 @@ test.describe('Instagram Post Poster Generator', () => {
     await page.evaluate(() => hideSpinner());
     await expect(spinner).toHaveClass(/hidden/);
 
+    // Mock oEmbed and embed so generate can complete
+    await page.route('**/api.instagram.com/oembed/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ author_name: 'user', title: '', thumbnail_url: '' })
+      });
+    });
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
     // Also verify that generatePoster triggers the spinner lifecycle
     // by checking the button state change (which happens alongside spinner)
     await page.fill('#instagram-url', 'https://www.instagram.com/p/ABC123/');
@@ -199,61 +225,124 @@ test.describe('Instagram Post Poster Generator', () => {
     await expect(copyBtn).not.toHaveText('Copying...', { timeout: 10000 });
   });
 
-  test('generate poster shows embed container with correct iframe src', async ({ page }) => {
+  test('autofill populates form fields when oEmbed fetch succeeds', async ({ page }) => {
     await page.goto('/');
 
+    // Mock the oEmbed endpoint to return valid data
+    await page.route('**/api.instagram.com/oembed/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          author_name: 'testcreator',
+          title: 'Beautiful sunset over the ocean #nature #photography',
+          thumbnail_url: 'https://scontent.cdninstagram.com/v/t51.2885-15/test-image.jpg'
+        })
+      });
+    });
+
     // Block Instagram embed requests so the test doesn't wait for network
-    await page.route('**/instagram.com/**', (route) => {
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
       route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
 
     // Enter a valid Instagram URL
-    await page.fill('#instagram-url', 'https://www.instagram.com/p/TEST_SHORTCODE/');
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/TEST_AUTOFILL/');
     await page.click('#generate-btn');
 
     // Wait for the button to re-enable (generation complete)
     await expect(page.locator('#generate-btn')).toBeEnabled();
 
-    // Verify embed container is visible
+    // Verify form fields are populated with oEmbed data
+    await expect(page.locator('#username')).toHaveValue('testcreator');
+    await expect(page.locator('#caption')).toHaveValue('Beautiful sunset over the ocean #nature #photography');
+    await expect(page.locator('#post-image')).toHaveValue('https://scontent.cdninstagram.com/v/t51.2885-15/test-image.jpg');
+
+    // Verify the poster displays the autofilled data
+    const username = page.locator('#poster-username');
+    await expect(username).toHaveText('@testcreator');
+
+    const caption = page.locator('#poster-caption');
+    await expect(caption).toContainText('Beautiful sunset over the ocean');
+
+    // Verify success feedback message
+    const feedback = page.locator('#fetch-feedback');
+    await expect(feedback).toBeVisible();
+    await expect(feedback).toContainText('Successfully auto-filled');
+
+    // Verify embed container is also shown
     const embedContainer = page.locator('#embed-container');
     await expect(embedContainer).toBeVisible();
 
-    // Verify iframe exists with correct src containing the shortcode
     const iframe = page.locator('#instagram-embed-iframe');
     await expect(iframe).toBeAttached();
     const src = await iframe.getAttribute('src');
-    expect(src).toContain('TEST_SHORTCODE');
-    expect(src).toContain('/embed/');
-    expect(src).toBe('https://www.instagram.com/p/TEST_SHORTCODE/embed/');
+    expect(src).toContain('TEST_AUTOFILL');
   });
 
-  test('generate poster shows guidance feedback message', async ({ page }) => {
+  test('graceful degradation shows embed and guidance when oEmbed fails', async ({ page }) => {
     await page.goto('/');
 
+    // Mock the oEmbed endpoint to return an error
+    await page.route('**/api.instagram.com/oembed/**', (route) => {
+      route.fulfill({
+        status: 503,
+        contentType: 'text/plain',
+        body: 'Service Unavailable'
+      });
+    });
+
     // Block Instagram embed requests
-    await page.route('**/instagram.com/**', (route) => {
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
       route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
 
     // Enter a valid Instagram URL
-    await page.fill('#instagram-url', 'https://www.instagram.com/p/FEEDBACK_TEST/');
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/DEGRADE_TEST/');
     await page.click('#generate-btn');
 
     // Wait for the button to re-enable (generation complete)
     await expect(page.locator('#generate-btn')).toBeEnabled();
 
-    // Verify the feedback/guidance message appears
+    // Verify embed container is visible as fallback reference
+    const embedContainer = page.locator('#embed-container');
+    await expect(embedContainer).toBeVisible();
+
+    const iframe = page.locator('#instagram-embed-iframe');
+    await expect(iframe).toBeAttached();
+    const src = await iframe.getAttribute('src');
+    expect(src).toContain('DEGRADE_TEST');
+
+    // Verify guidance feedback message for manual fill
     const feedback = page.locator('#fetch-feedback');
     await expect(feedback).toBeVisible();
-    await expect(feedback).toContainText('embedded post below');
+    await expect(feedback).toContainText('Could not auto-fill');
     await expect(feedback).toContainText('fill in the details manually');
+
+    // Form fields should remain empty (not autofilled)
+    await expect(page.locator('#username')).toHaveValue('');
+    await expect(page.locator('#caption')).toHaveValue('');
+    await expect(page.locator('#post-image')).toHaveValue('');
   });
 
   test('generate poster creates QR code with post URL', async ({ page }) => {
     await page.goto('/');
 
+    // Mock the oEmbed endpoint
+    await page.route('**/api.instagram.com/oembed/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          author_name: 'qruser',
+          title: 'QR test caption',
+          thumbnail_url: 'https://scontent.cdninstagram.com/v/test-qr.jpg'
+        })
+      });
+    });
+
     // Block Instagram embed requests
-    await page.route('**/instagram.com/**', (route) => {
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
       route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
 

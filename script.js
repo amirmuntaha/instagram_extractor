@@ -191,7 +191,7 @@ function updatePosterFromData(url) {
     document.getElementById('poster-likes').textContent = `${formatNumber(likes)} likes`;
 
     // Update caption
-    document.getElementById('poster-caption').innerHTML = `<strong>${displayUsername}</strong> ${escapeHtml(caption)}`;
+    document.getElementById('poster-caption').innerHTML = `<strong>${escapeHtml(displayUsername)}</strong> ${escapeHtml(caption)}`;
 
     // Update comments
     const commentsContainer = document.getElementById('poster-comments');
@@ -369,12 +369,12 @@ async function copyToClipboard() {
         copyBtn.textContent = 'Copied!';
         setTimeout(() => {
             copyBtn.textContent = 'Copy to Clipboard';
+            copyBtn.disabled = false;
         }, 2000);
     } catch (error) {
         console.error('Copy to clipboard failed:', error);
         alert('Failed to copy to clipboard. Your browser may not support this feature.');
         copyBtn.textContent = 'Copy to Clipboard';
-    } finally {
         copyBtn.disabled = false;
     }
 }

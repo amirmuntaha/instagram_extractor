@@ -1,0 +1,25 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Add UI enhancements: favicon, loading spinner, dark mode/theme options, and copy to clipboard button",
+  "status": "completed",
+  "steps": [
+    "Create a favicon.ico (or favicon.svg) file at the project root. A simple Instagram-like camera icon or gradient square. Add the <link rel=\"icon\" ...> tag to the <head> in index.html.",
+    "Add a loading spinner overlay in index.html. When the 'Generate Poster' button is clicked, show a spinner overlay on the poster area (or the whole page section) until the async operation completes. Add CSS for the spinner animation in style.css. In script.js, show the spinner at the start of generatePoster() and hide it in the finally block.",
+    "Add a theme selector control (e.g., a <select> or radio buttons) above or near the poster preview in index.html with options like 'Light' (default), 'Dark', 'Gradient'. In style.css, add theme-specific poster styles using CSS classes (e.g., .poster.theme-dark with dark background, light text; .poster.theme-gradient with a gradient background). In script.js, add a function to apply the selected theme class to the #poster element.",
+    "Add a 'Copy to Clipboard' button next to the existing 'Download as Image' button in the .download-section of index.html. In script.js, implement a copyToClipboard() function that uses html2canvas to render the poster to a canvas, then uses canvas.toBlob() and navigator.clipboard.write() to copy the image. Style the button in style.css to match the download button style."
+  ],
+  "acceptance_criteria": [
+    "Loading index.html does not produce a 404 error for favicon in browser console",
+    "A loading spinner is visible while generatePoster() is executing",
+    "A theme selector is present and switching themes changes the poster appearance (dark mode has dark background with light text)",
+    "A 'Copy to Clipboard' button is present next to the download button",
+    "The copy button uses html2canvas and navigator.clipboard.write to copy the poster image"
+  ],
+  "verification": [
+    "Serve the site with a local HTTP server and run Playwright tests (in FEAT-002) to verify all UI elements are present and functional",
+    "Manually verify: the favicon link tag exists in index.html, spinner CSS animation exists in style.css, theme classes exist in style.css, copyToClipboard function exists in script.js"
+  ],
+  "blocked_reason": null,
+  "findings": "All UI enhancements implemented successfully. No build/test commands needed for this static HTML/CSS/JS project (those are configured in FEAT-002). Spinner overlay uses position:absolute inside poster-wrapper (which has position:relative). Theme dark uses #1a1a1a bg with #e0e0e0 text. Copy button uses html2canvas + canvas.toBlob + navigator.clipboard.write as required."
+}

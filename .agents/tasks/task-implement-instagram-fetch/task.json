@@ -1,0 +1,7 @@
+{
+  "task_id": "task-implement-instagram-fetch",
+  "task_description": "Implement the fetchInstagramData() function so that clicking 'Generate Poster' with an Instagram URL actually fetches post data (username, caption, image) and autofills the poster. Update tests to verify this behavior.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null
+}

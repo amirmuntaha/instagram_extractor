@@ -199,4 +199,115 @@ test.describe('Instagram Post Poster Generator', () => {
     await expect(copyBtn).not.toHaveText('Copying...', { timeout: 10000 });
   });
 
+  test('autofill populates form fields when fetch succeeds (mocked)', async ({ page }) => {
+    await page.goto('/');
+
+    // Mock CORS proxy responses to simulate a successful Instagram data fetch
+    const fakeInstagramHtml = `
+      <html>
+      <head>
+        <meta property="og:image" content="https://example.com/fake-image.jpg" />
+        <meta property="og:description" content="42 Likes, 3 Comments - @testcreator on Instagram: &quot;This is a test caption from Instagram&quot;" />
+      </head>
+      <body></body>
+      </html>
+    `;
+
+    // Intercept requests to CORS proxy services and return our fake HTML
+    await page.route('**/api.codetabs.com/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: fakeInstagramHtml
+      });
+    });
+
+    await page.route('**/corsproxy.io/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: fakeInstagramHtml
+      });
+    });
+
+    await page.route('**/api.allorigins.win/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: fakeInstagramHtml
+      });
+    });
+
+    // Enter a valid Instagram URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/TEST_AUTOFILL/');
+    await page.click('#generate-btn');
+
+    // Wait for the button to re-enable (generation complete)
+    await expect(page.locator('#generate-btn')).toBeEnabled({ timeout: 15000 });
+
+    // Verify form fields were auto-populated with the mocked data
+    const usernameField = page.locator('#username');
+    await expect(usernameField).toHaveValue('testcreator');
+
+    const captionField = page.locator('#caption');
+    await expect(captionField).toHaveValue('This is a test caption from Instagram');
+
+    const imageField = page.locator('#post-image');
+    await expect(imageField).toHaveValue('https://example.com/fake-image.jpg');
+
+    // Verify the poster was updated with this data
+    const posterUsername = page.locator('#poster-username');
+    await expect(posterUsername).toHaveText('@testcreator');
+
+    const posterCaption = page.locator('#poster-caption');
+    await expect(posterCaption).toContainText('This is a test caption from Instagram');
+
+    // Verify the feedback message indicates success
+    const feedback = page.locator('#fetch-feedback');
+    await expect(feedback).toBeVisible();
+    await expect(feedback).toContainText('auto-filled');
+  });
+
+  test('autofill gracefully degrades when fetch fails', async ({ page }) => {
+    await page.goto('/');
+
+    // Mock CORS proxy responses to simulate failure (return empty/error)
+    await page.route('**/api.codetabs.com/**', (route) => {
+      route.fulfill({ status: 503, body: 'Service Unavailable' });
+    });
+
+    await page.route('**/corsproxy.io/**', (route) => {
+      route.fulfill({ status: 503, body: 'Service Unavailable' });
+    });
+
+    await page.route('**/api.allorigins.win/**', (route) => {
+      route.fulfill({ status: 503, body: 'Service Unavailable' });
+    });
+
+    // Track page errors to ensure none are thrown
+    const pageErrors = [];
+    page.on('pageerror', (error) => {
+      pageErrors.push(error.message);
+    });
+
+    // Enter a valid Instagram URL
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/FAIL_TEST/');
+    await page.click('#generate-btn');
+
+    // Wait for the button to re-enable (generation complete)
+    await expect(page.locator('#generate-btn')).toBeEnabled({ timeout: 15000 });
+
+    // No uncaught page errors should have occurred
+    expect(pageErrors).toHaveLength(0);
+
+    // The poster should still be rendered (QR code generated)
+    const qrChild = page.locator('#qr-code canvas, #qr-code img');
+    await expect(qrChild.first()).toBeAttached();
+
+    // Feedback should indicate that auto-fetch failed
+    const feedback = page.locator('#fetch-feedback');
+    await expect(feedback).toBeVisible();
+    await expect(feedback).toContainText('unable to retrieve data');
+  });
+
 });

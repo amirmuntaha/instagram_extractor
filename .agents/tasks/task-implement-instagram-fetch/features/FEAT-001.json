@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Implement the fetchInstagramData() function in script.js to actually fetch post data from Instagram using multiple fallback strategies (CORS proxy + page scraping, embed page parsing), and update the poster with fetched data. Also update Playwright tests to verify autofill behavior.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Replace the fetchInstagramData() function in script.js (currently at line ~95) with a real implementation that: (a) Tries fetching via a CORS proxy service (e.g., https://api.codetabs.com/v1/proxy?quest= or similar free services) to get the Instagram page HTML, (b) Parses the HTML response to extract og:image, og:description, and author info from meta tags or embedded JSON data, (c) Falls back to trying the Instagram embed endpoint at https://www.instagram.com/p/{shortcode}/embed/ via CORS proxy to extract data, (d) Returns an object with username, caption, imageUrl, and any other available fields",
     "Ensure the function handles errors gracefully - if all fetch attempts fail, it should still return whatever partial data is available (at minimum the shortcode from the URL) and not throw errors that break the UI flow",
@@ -22,5 +22,5 @@
     "Check that script.js contains a fetchInstagramData function that makes actual HTTP requests (not just URL parsing)"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 13 Playwright tests pass (10 existing + 3 new). PR #3 updated with review fixes: (1) Image URLs validated against Instagram CDN domains before DOM assignment, (2) AbortSignal.timeout replaced with AbortController+setTimeout for Safari compat, (3) innerHTML in feedback banner replaced with safe DOM methods, (4) New test covers embed fallback path (Strategy 2), (5) Sequential proxy waterfall replaced with Promise.any racing all proxies in parallel with 5s timeout."
 }

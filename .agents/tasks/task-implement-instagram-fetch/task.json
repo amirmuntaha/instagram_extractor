@@ -1,0 +1,14 @@
+{
+  "task_id": "task-implement-instagram-fetch",
+  "task_description": "Implement the fetchInstagramData() function so that clicking 'Generate Poster' with an Instagram URL actually fetches post data (username, caption, image) and autofills the poster. Update tests to verify this behavior.",
+  "status": "completed",
+  "feature_order": ["FEAT-001"],
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "All 13 Playwright tests pass (10 existing + 3 new). Review issues addressed: URL validation, AbortController compat, DOM safety, embed fallback test, Promise.any proxy racing."
+  }
+}

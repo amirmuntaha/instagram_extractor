@@ -1,0 +1,20 @@
+{
+  "project_type": "Static website (vanilla HTML/CSS/JS) hosted on GitHub Pages",
+  "language": "JavaScript, HTML, CSS",
+  "build_system": "None - no build tools, just static files. CDN libraries (QRCode.js, html2canvas) loaded directly in HTML.",
+  "test_framework": "None currently. Will add Playwright for E2E tests.",
+  "build_command": "No build required - static site",
+  "test_command": "npx playwright test (after setup)",
+  "verification_instructions": "1. Serve the site locally with a static server (npx serve or python http.server). 2. Run playwright tests against local server. 3. Verify favicon loads without 404. 4. Verify loading spinner appears. 5. Verify theme switching works. 6. Verify copy to clipboard button works.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "1. Node.js available via mise (run: eval \"$(mise activate bash)\"). 2. npm init and npm install playwright. 3. npx playwright install --with-deps chromium.",
+  "environment_constraints": "Node.js 20.20.2 available via mise. Must run eval \"$(mise activate bash)\" before node/npm commands. Open internet access. gh CLI available for creating PRs.",
+  "contribution_requirements": "Push to a feature branch (not main). Create PR via gh api (not gh pr create). Branch name should NOT be feature/poster-generator (already used).",
+  "key_patterns": "Single-page app with all logic in script.js, styles in style.css, structure in index.html. Functions are global (no modules). Event listeners attached in DOMContentLoaded. QR code generated via QRCode constructor. Poster downloaded via html2canvas.",
+  "relevant_files": [
+    "index.html",
+    "style.css",
+    "script.js"
+  ],
+  "directory_structure": "Flat structure at root: index.html, style.css, script.js, LICENSE, README.md. No subdirectories for source. Will add: .github/workflows/, tests/ (or e2e/), package.json, playwright.config.js"
+}

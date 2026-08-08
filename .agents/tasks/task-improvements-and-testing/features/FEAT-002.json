@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Add Playwright end-to-end tests and GitHub Actions CI pipeline",
+  "status": "completed",
+  "steps": [
+    "Initialize npm project: run npm init -y to create package.json at project root. Install Playwright as a dev dependency: npm install -D @playwright/test. Install Playwright browsers: npx playwright install --with-deps chromium.",
+    "Create playwright.config.js (or .ts) at project root. Configure: baseURL to use a local web server (use Playwright's built-in webServer config to serve the static site, e.g., using 'npx serve .' on a port like 3000), testDir pointing to 'tests/', use only chromium project for speed.",
+    "Create tests/ directory and add e2e test file tests/poster.spec.js with the following test cases: (a) Page loads correctly - verify title and key elements are visible. (b) URL validation - enter an invalid URL, click generate, verify alert/error. Enter a valid Instagram URL and verify no error. (c) Manual form input - fill in username, caption, comments fields, click Update Poster, verify poster content updates. (d) QR code generates - after updating poster, verify the QR code container has a canvas or img child. (e) Download button - verify the download button exists and is clickable. (f) Copy to clipboard button - verify the copy button exists and is clickable.",
+    "Create .github/workflows/playwright.yml CI pipeline. The workflow should: trigger on push and pull_request, use ubuntu-latest, checkout code, setup Node.js (v20), run npm ci, install Playwright browsers (npx playwright install --with-deps chromium), run npx playwright test, upload test results as artifacts on failure.",
+    "Add a .gitignore file that ignores node_modules/, test-results/, playwright-report/, and playwright/.cache/.",
+    "Run the Playwright tests locally to verify they pass: eval \"$(mise activate bash)\" && npx playwright test. Fix any failing tests."
+  ],
+  "acceptance_criteria": [
+    "package.json exists with @playwright/test as a devDependency",
+    "playwright.config.js exists with proper webServer configuration to serve the static site",
+    "tests/poster.spec.js exists with at least 6 test cases covering the specified scenarios",
+    ".github/workflows/playwright.yml exists with a valid GitHub Actions workflow",
+    "All Playwright tests pass when run locally with 'npx playwright test'",
+    ".gitignore properly excludes node_modules and test artifacts"
+  ],
+  "verification": [
+    "Run: eval \"$(mise activate bash)\" && cd /projects/sandbox/instagram_extractor && npx playwright test -- all tests should pass",
+    "Validate the workflow YAML is well-formed: cat .github/workflows/playwright.yml"
+  ],
+  "blocked_reason": null,
+  "findings": "Playwright installed chromium without --with-deps (apt-get not available in sandbox). Tests use toBeAttached() instead of toBeVisible() for QR code canvas as it renders with hidden visibility but is attached to DOM. Dialog handling uses page.once('dialog') with accept() pattern to avoid blocking page.click(). All 7 tests pass locally."
+}

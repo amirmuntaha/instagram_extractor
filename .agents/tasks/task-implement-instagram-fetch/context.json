@@ -1,0 +1,16 @@
+{
+  "project_type": "Static website (HTML/CSS/JS) hosted on GitHub Pages",
+  "language": "JavaScript (vanilla, no frameworks)",
+  "build_system": "None - static files served directly. Uses 'npx serve . -l 3000' for local development",
+  "test_framework": "Playwright E2E tests in tests/poster.spec.js",
+  "build_command": "N/A (static site, no build step)",
+  "test_command": "npx playwright test",
+  "verification_instructions": "1. Run 'npx playwright test' to verify all existing and new tests pass. 2. Manually verify by running 'npx serve . -l 3000' and opening http://localhost:3000 in a browser",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "1. cd /projects/sandbox/instagram_extractor 2. npm install 3. npx playwright install chromium",
+  "environment_constraints": "No backend server available. All logic must be client-side JavaScript. Instagram APIs are locked down - oEmbed requires auth, pages redirect to login. CORS proxy services are the best available option for fetching data. Network access is available from this sandbox.",
+  "contribution_requirements": "Create a feature branch, push, and create PR via gh api. Do not push to main directly.",
+  "key_patterns": "Functions are in script.js with JSDoc comments. Main flow: generatePoster() -> fetchInstagramData(url) -> updatePosterFromData(url). The fetchInstagramData function currently returns empty data. The poster update logic in updatePosterFromData() already handles all UI updates when given data.",
+  "relevant_files": ["script.js", "index.html", "tests/poster.spec.js", "playwright.config.js", "package.json"],
+  "directory_structure": "Root contains: index.html (main page), script.js (all JS logic), style.css (styling), tests/poster.spec.js (E2E tests), package.json, playwright.config.js, .github/workflows/playwright.yml (CI)"
+}

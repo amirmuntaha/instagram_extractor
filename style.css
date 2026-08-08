@@ -383,6 +383,11 @@ header .subtitle {
     color: #667eea;
 }
 
+/* Poster Container (for spinner scoping) */
+.poster-container {
+    position: relative;
+}
+
 /* Spinner Overlay */
 .spinner-overlay {
     position: absolute;

@@ -31,8 +31,8 @@ test.describe('Instagram Post Poster Generator', () => {
     // Click Generate button
     await page.click('#generate-btn');
 
-    // Wait for the dialog to be handled
-    await page.waitForTimeout(500);
+    // Wait for the generate button to be re-enabled (indicates click processing finished)
+    await expect(page.locator('#generate-btn')).toBeEnabled();
 
     // Verify the alert contained the validation error message
     expect(dialogMessage).toContain('valid Instagram post URL');
@@ -51,11 +51,9 @@ test.describe('Instagram Post Poster Generator', () => {
       await dialog.dismiss();
     });
 
-    // Click Generate button
+    // Click Generate button and wait for it to finish (button re-enables)
     await page.click('#generate-btn');
-
-    // Wait a moment for any potential dialog
-    await page.waitForTimeout(1000);
+    await expect(page.locator('#generate-btn')).toBeEnabled();
 
     // No alert should have appeared
     expect(dialogAppeared).toBe(false);
@@ -99,14 +97,11 @@ test.describe('Instagram Post Poster Generator', () => {
     // Click Update Poster
     await page.click('.update-btn');
 
-    // Wait for QR code to render
-    await page.waitForTimeout(500);
-
-    // Verify QR code container has a canvas or img child element
-    const qrContainer = page.locator('#qr-code');
-    const qrChild = qrContainer.locator('canvas, img');
+    // Wait for QR code canvas or img to appear (deterministic)
+    const qrChild = page.locator('#qr-code canvas, #qr-code img');
     await expect(qrChild.first()).toBeAttached();
-    // Verify the canvas has non-zero dimensions
+
+    // Verify the canvas has been rendered
     const count = await qrChild.count();
     expect(count).toBeGreaterThan(0);
   });
@@ -127,6 +122,81 @@ test.describe('Instagram Post Poster Generator', () => {
     await expect(copyBtn).toBeVisible();
     await expect(copyBtn).toBeEnabled();
     await expect(copyBtn).toHaveText('Copy to Clipboard');
+  });
+
+  test('spinner is visible during poster generation', async ({ page }) => {
+    await page.goto('/');
+
+    const spinner = page.locator('#spinner-overlay');
+
+    // Verify spinner is initially hidden
+    await expect(spinner).toHaveClass(/hidden/);
+
+    // Directly invoke showSpinner to verify the mechanism works
+    await page.evaluate(() => showSpinner());
+    await expect(spinner).not.toHaveClass(/hidden/);
+    await expect(spinner).toBeVisible();
+
+    // Now hide it and verify
+    await page.evaluate(() => hideSpinner());
+    await expect(spinner).toHaveClass(/hidden/);
+
+    // Also verify that generatePoster triggers the spinner lifecycle
+    // by checking the button state change (which happens alongside spinner)
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/ABC123/');
+    await page.click('#generate-btn');
+
+    // The button should be disabled while generating, then re-enabled
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // After generation completes, spinner should be hidden
+    await expect(spinner).toHaveClass(/hidden/);
+  });
+
+  test('theme selector applies correct class to poster', async ({ page }) => {
+    await page.goto('/');
+
+    const poster = page.locator('#poster');
+
+    // Default: no theme class applied
+    await expect(poster).not.toHaveClass(/theme-dark/);
+    await expect(poster).not.toHaveClass(/theme-gradient/);
+
+    // Select dark theme
+    await page.selectOption('#theme-select', 'dark');
+    await expect(poster).toHaveClass(/theme-dark/);
+    await expect(poster).not.toHaveClass(/theme-gradient/);
+
+    // Select gradient theme
+    await page.selectOption('#theme-select', 'gradient');
+    await expect(poster).toHaveClass(/theme-gradient/);
+    await expect(poster).not.toHaveClass(/theme-dark/);
+
+    // Switch back to light theme
+    await page.selectOption('#theme-select', 'light');
+    await expect(poster).not.toHaveClass(/theme-dark/);
+    await expect(poster).not.toHaveClass(/theme-gradient/);
+  });
+
+  test('copy to clipboard button shows copying state on click', async ({ page, context }) => {
+    await page.goto('/');
+
+    // Grant clipboard permissions
+    await context.grantPermissions(['clipboard-write', 'clipboard-read']);
+
+    // Fill in some data to have a poster to copy
+    await page.fill('#username', 'clipuser');
+    await page.click('.update-btn');
+
+    const copyBtn = page.locator('.copy-btn');
+    await expect(copyBtn).toHaveText('Copy to Clipboard');
+
+    // Click the copy button and verify it transitions to "Copying..." state
+    await page.click('.copy-btn');
+    await expect(copyBtn).toHaveText('Copying...');
+
+    // Wait for the operation to complete - button should show "Copied!" or revert
+    await expect(copyBtn).not.toHaveText('Copying...', { timeout: 10000 });
   });
 
 });

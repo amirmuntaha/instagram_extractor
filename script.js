@@ -244,6 +244,20 @@ function generateQRCode(url) {
 }
 
 /**
+ * Get the appropriate background color for html2canvas based on active theme
+ */
+function getExportBackgroundColor() {
+    const poster = document.getElementById('poster');
+    if (poster.classList.contains('theme-dark')) {
+        return '#1a1a1a';
+    } else if (poster.classList.contains('theme-gradient')) {
+        // For gradient themes, let html2canvas capture the element's own rendering
+        return null;
+    }
+    return '#ffffff';
+}
+
+/**
  * Download the poster as a PNG image
  */
 async function downloadPoster() {
@@ -261,7 +275,7 @@ async function downloadPoster() {
             scale: 2,
             useCORS: true,
             allowTaint: true,
-            backgroundColor: '#ffffff',
+            backgroundColor: getExportBackgroundColor(),
             logging: false
         });
 
@@ -333,7 +347,7 @@ async function copyToClipboard() {
             scale: 2,
             useCORS: true,
             allowTaint: true,
-            backgroundColor: '#ffffff',
+            backgroundColor: getExportBackgroundColor(),
             logging: false
         });
 

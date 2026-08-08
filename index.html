@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instagram Post Poster Generator</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="style.css">
     <!-- QR Code library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -61,6 +62,22 @@
         <!-- Poster Preview -->
         <div class="poster-wrapper">
             <h3>Poster Preview</h3>
+
+            <!-- Theme Selector -->
+            <div class="theme-selector">
+                <label for="theme-select">Theme:</label>
+                <select id="theme-select" onchange="applyTheme()">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="gradient">Gradient</option>
+                </select>
+            </div>
+
+            <!-- Loading Spinner Overlay -->
+            <div id="spinner-overlay" class="spinner-overlay hidden">
+                <div class="spinner"></div>
+            </div>
+
             <div id="poster" class="poster">
                 <div class="poster-header">
                     <div class="poster-avatar">
@@ -121,6 +138,7 @@
 
             <div class="download-section">
                 <button class="download-btn" onclick="downloadPoster()">Download as Image</button>
+                <button class="copy-btn" onclick="copyToClipboard()">Copy to Clipboard</button>
             </div>
         </div>
     </div>

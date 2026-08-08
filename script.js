@@ -3,6 +3,26 @@
 let qrCodeInstance = null;
 
 /**
+ * Show the loading spinner overlay
+ */
+function showSpinner() {
+    const spinner = document.getElementById('spinner-overlay');
+    if (spinner) {
+        spinner.classList.remove('hidden');
+    }
+}
+
+/**
+ * Hide the loading spinner overlay
+ */
+function hideSpinner() {
+    const spinner = document.getElementById('spinner-overlay');
+    if (spinner) {
+        spinner.classList.add('hidden');
+    }
+}
+
+/**
  * Generate poster from Instagram URL
  * Uses Instagram's oEmbed endpoint to fetch post data
  */
@@ -23,6 +43,7 @@ async function generatePoster() {
     const btn = document.getElementById('generate-btn');
     btn.textContent = 'Generating...';
     btn.disabled = true;
+    showSpinner();
 
     try {
         // Try fetching data via Instagram oEmbed API
@@ -51,6 +72,7 @@ async function generatePoster() {
     } finally {
         btn.textContent = 'Generate Poster';
         btn.disabled = false;
+        hideSpinner();
     }
 }
 
@@ -272,6 +294,75 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Apply the selected theme to the poster
+ */
+function applyTheme() {
+    const poster = document.getElementById('poster');
+    const themeSelect = document.getElementById('theme-select');
+    const selectedTheme = themeSelect.value;
+
+    // Remove existing theme classes
+    poster.classList.remove('theme-dark', 'theme-gradient');
+
+    // Apply the selected theme class (light is the default, no class needed)
+    if (selectedTheme === 'dark') {
+        poster.classList.add('theme-dark');
+    } else if (selectedTheme === 'gradient') {
+        poster.classList.add('theme-gradient');
+    }
+}
+
+/**
+ * Copy the poster as an image to the clipboard
+ */
+async function copyToClipboard() {
+    const poster = document.getElementById('poster');
+    const copyBtn = document.querySelector('.copy-btn');
+
+    copyBtn.textContent = 'Copying...';
+    copyBtn.disabled = true;
+
+    try {
+        // Wait for QR code to render
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const canvas = await html2canvas(poster, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false
+        });
+
+        // Convert canvas to blob and copy to clipboard
+        const blob = await new Promise((resolve, reject) => {
+            canvas.toBlob(function(b) {
+                if (b) {
+                    resolve(b);
+                } else {
+                    reject(new Error('Failed to create blob from canvas'));
+                }
+            }, 'image/png');
+        });
+
+        await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+        ]);
+
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => {
+            copyBtn.textContent = 'Copy to Clipboard';
+        }, 2000);
+    } catch (error) {
+        console.error('Copy to clipboard failed:', error);
+        alert('Failed to copy to clipboard. Your browser may not support this feature.');
+        copyBtn.textContent = 'Copy to Clipboard';
+    } finally {
+        copyBtn.disabled = false;
+    }
 }
 
 /**

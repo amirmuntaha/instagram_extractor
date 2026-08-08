@@ -206,7 +206,7 @@ test.describe('Instagram Post Poster Generator', () => {
     const fakeInstagramHtml = `
       <html>
       <head>
-        <meta property="og:image" content="https://example.com/fake-image.jpg" />
+        <meta property="og:image" content="https://scontent-iad3-1.cdninstagram.com/fake-image.jpg" />
         <meta property="og:description" content="42 Likes, 3 Comments - @testcreator on Instagram: &quot;This is a test caption from Instagram&quot;" />
       </head>
       <body></body>
@@ -253,7 +253,7 @@ test.describe('Instagram Post Poster Generator', () => {
     await expect(captionField).toHaveValue('This is a test caption from Instagram');
 
     const imageField = page.locator('#post-image');
-    await expect(imageField).toHaveValue('https://example.com/fake-image.jpg');
+    await expect(imageField).toHaveValue('https://scontent-iad3-1.cdninstagram.com/fake-image.jpg');
 
     // Verify the poster was updated with this data
     const posterUsername = page.locator('#poster-username');
@@ -308,6 +308,89 @@ test.describe('Instagram Post Poster Generator', () => {
     const feedback = page.locator('#fetch-feedback');
     await expect(feedback).toBeVisible();
     await expect(feedback).toContainText('unable to retrieve data');
+  });
+
+  test('embed fallback is used when main page lacks data (Strategy 2)', async ({ page }) => {
+    await page.goto('/');
+
+    // Strategy 1: main page returns HTML without useful og:image or username
+    const emptyMainPageHtml = `
+      <html>
+      <head>
+        <meta property="og:title" content="Login" />
+        <meta property="og:description" content="Sign in to Instagram" />
+      </head>
+      <body><h1>Login Required</h1></body>
+      </html>
+    `;
+
+    // Strategy 2: embed page returns HTML with post data
+    const embedHtml = `
+      <html>
+      <head>
+        <meta property="og:image" content="https://scontent-iad3-2.cdninstagram.com/embed-image.jpg" />
+      </head>
+      <body>
+        <header><a class="FPmhX" href="/embeduser/">embeduser</a></header>
+        <div class="Caption"><div class="CaptionContent">Embed caption text here</div></div>
+        <img class="EmbeddedMediaImage" src="https://scontent-iad3-2.cdninstagram.com/embed-image.jpg" />
+      </body>
+      </html>
+    `;
+
+    // Route main page requests (non-embed URLs) to return empty data
+    await page.route('**/api.codetabs.com/**', (route, request) => {
+      const url = request.url();
+      if (url.includes('embed')) {
+        route.fulfill({ status: 200, contentType: 'text/html', body: embedHtml });
+      } else {
+        route.fulfill({ status: 200, contentType: 'text/html', body: emptyMainPageHtml });
+      }
+    });
+
+    await page.route('**/corsproxy.io/**', (route, request) => {
+      const url = request.url();
+      if (url.includes('embed')) {
+        route.fulfill({ status: 200, contentType: 'text/html', body: embedHtml });
+      } else {
+        route.fulfill({ status: 200, contentType: 'text/html', body: emptyMainPageHtml });
+      }
+    });
+
+    await page.route('**/api.allorigins.win/**', (route, request) => {
+      const url = request.url();
+      if (url.includes('embed')) {
+        route.fulfill({ status: 200, contentType: 'text/html', body: embedHtml });
+      } else {
+        route.fulfill({ status: 200, contentType: 'text/html', body: emptyMainPageHtml });
+      }
+    });
+
+    // Enter a valid Instagram URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/EMBED_TEST/');
+    await page.click('#generate-btn');
+
+    // Wait for the button to re-enable (generation complete)
+    await expect(page.locator('#generate-btn')).toBeEnabled({ timeout: 15000 });
+
+    // Verify form fields were populated from the embed fallback
+    const usernameField = page.locator('#username');
+    await expect(usernameField).toHaveValue('embeduser');
+
+    const captionField = page.locator('#caption');
+    await expect(captionField).toHaveValue('Embed caption text here');
+
+    const imageField = page.locator('#post-image');
+    await expect(imageField).toHaveValue('https://scontent-iad3-2.cdninstagram.com/embed-image.jpg');
+
+    // Verify the poster username was updated
+    const posterUsername = page.locator('#poster-username');
+    await expect(posterUsername).toHaveText('@embeduser');
+
+    // Verify feedback indicates partial or full success
+    const feedback = page.locator('#fetch-feedback');
+    await expect(feedback).toBeVisible();
+    await expect(feedback).toContainText('auto-filled');
   });
 
 });

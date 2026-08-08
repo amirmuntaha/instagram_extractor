@@ -42,20 +42,29 @@ function showFetchFeedback(fetchedFields) {
         feedbackEl.style.backgroundColor = '#fff3cd';
         feedbackEl.style.color = '#856404';
         feedbackEl.style.border = '1px solid #ffc107';
-        feedbackEl.innerHTML = '<strong>Auto-fetch was unable to retrieve data.</strong> Instagram may be blocking requests. Please fill in the fields manually (username, caption, image URL) and click "Update Poster".';
+        const strong = document.createElement('strong');
+        strong.textContent = 'Auto-fetch was unable to retrieve data.';
+        feedbackEl.appendChild(strong);
+        feedbackEl.appendChild(document.createTextNode(' Instagram may be blocking requests. Please fill in the fields manually (username, caption, image URL) and click "Update Poster".'));
     } else if (fetchedFields.length < 3) {
         // Partial data fetched
         const missing = ['username', 'caption', 'image'].filter(f => !fetchedFields.includes(f));
         feedbackEl.style.backgroundColor = '#d1ecf1';
         feedbackEl.style.color = '#0c5460';
         feedbackEl.style.border = '1px solid #bee5eb';
-        feedbackEl.innerHTML = `<strong>Partially auto-filled!</strong> Fetched: ${fetchedFields.join(', ')}. Please manually enter: ${missing.join(', ')}.`;
+        const strong = document.createElement('strong');
+        strong.textContent = 'Partially auto-filled!';
+        feedbackEl.appendChild(strong);
+        feedbackEl.appendChild(document.createTextNode(' Fetched: ' + fetchedFields.join(', ') + '. Please manually enter: ' + missing.join(', ') + '.'));
     } else {
         // All data fetched
         feedbackEl.style.backgroundColor = '#d4edda';
         feedbackEl.style.color = '#155724';
         feedbackEl.style.border = '1px solid #c3e6cb';
-        feedbackEl.innerHTML = '<strong>Successfully auto-filled!</strong> All available data was fetched from Instagram.';
+        const strong = document.createElement('strong');
+        strong.textContent = 'Successfully auto-filled!';
+        feedbackEl.appendChild(strong);
+        feedbackEl.appendChild(document.createTextNode(' All available data was fetched from Instagram.'));
     }
 
     // Insert feedback after the generate button area
@@ -144,6 +153,30 @@ function isValidInstagramUrl(url) {
 }
 
 /**
+ * Validate that an image URL is a safe Instagram CDN URL
+ * Only allows https:// URLs from known Instagram/Facebook CDN domains
+ */
+function isValidInstagramImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'https:') return false;
+        const hostname = parsed.hostname;
+        // Allow known Instagram/Facebook CDN domains
+        const allowedPatterns = [
+            /^scontent.*\.cdninstagram\.com$/,
+            /^instagram\..+\.fna\.fbcdn\.net$/,
+            /^scontent.*\.fbcdn\.net$/,
+            /^.*\.cdninstagram\.com$/,
+            /^.*\.fbcdn\.net$/
+        ];
+        return allowedPatterns.some(pattern => pattern.test(hostname));
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
  * List of CORS proxy services to try in order
  */
 const CORS_PROXIES = [
@@ -153,26 +186,38 @@ const CORS_PROXIES = [
 ];
 
 /**
- * Attempt to fetch a URL through multiple CORS proxy services
+ * Attempt to fetch a URL through multiple CORS proxy services in parallel
+ * Uses Promise.any to race all proxies and return the first successful response
  * Returns the response text on success, or null on failure
  */
 async function fetchViaCorsProxy(targetUrl) {
-    for (const proxyFn of CORS_PROXIES) {
-        try {
-            const proxyUrl = proxyFn(targetUrl);
-            const response = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
-            if (response.ok) {
-                const text = await response.text();
-                // Verify we got actual HTML content, not an error page
-                if (text && text.length > 100) {
-                    return text;
-                }
-            }
-        } catch (err) {
-            console.warn(`CORS proxy attempt failed for ${targetUrl}:`, err.message);
-        }
+    const promises = CORS_PROXIES.map(proxyFn => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const proxyUrl = proxyFn(targetUrl);
+        return fetch(proxyUrl, { signal: controller.signal })
+            .then(response => {
+                clearTimeout(timeoutId);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return response.text();
+            })
+            .then(text => {
+                if (!text || text.length <= 100) throw new Error('Response too short');
+                return text;
+            })
+            .catch(err => {
+                clearTimeout(timeoutId);
+                console.warn(`CORS proxy attempt failed for ${targetUrl}:`, err.message);
+                throw err;
+            });
+    });
+
+    try {
+        return await Promise.any(promises);
+    } catch (err) {
+        // All proxies failed
+        return null;
     }
-    return null;
 }
 
 /**
@@ -395,7 +440,7 @@ function updatePosterFromData(url) {
 
     // Update image
     const imageArea = document.getElementById('poster-image-area');
-    if (imageUrl) {
+    if (imageUrl && isValidInstagramImageUrl(imageUrl)) {
         const img = document.createElement('img');
         img.src = imageUrl;
         img.alt = 'Instagram post';

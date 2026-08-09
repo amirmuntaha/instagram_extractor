@@ -31,9 +31,15 @@
         <div id="embed-container" class="embed-container" style="display:none;">
         </div>
 
-        <!-- Manual Input Section -->
-        <div class="manual-section">
-            <h3>Post Details</h3>
+        <!-- QR Code Section (below iframe) -->
+        <div id="embed-qr-section" class="embed-qr-section" style="display:none;">
+            <div id="embed-qr-code" class="embed-qr-code"></div>
+            <p class="embed-qr-label">Scan to view original post</p>
+        </div>
+
+        <!-- Manual Input Section (collapsible, folded by default) -->
+        <details class="collapsible-section manual-section">
+            <summary class="collapsible-header">Post Details</summary>
             <div class="form-grid">
                 <div class="form-group">
                     <label for="username">Username</label>
@@ -61,11 +67,11 @@
                 </div>
             </div>
             <button class="update-btn" onclick="updatePoster()">Update Poster</button>
-        </div>
+        </details>
 
-        <!-- Poster Preview -->
-        <div class="poster-wrapper">
-            <h3>Poster Preview</h3>
+        <!-- Poster Preview (collapsible, folded by default) -->
+        <details class="collapsible-section poster-wrapper">
+            <summary class="collapsible-header">Poster Preview</summary>
 
             <!-- Theme Selector -->
             <div class="theme-selector">
@@ -146,7 +152,7 @@
                 <button class="download-btn" onclick="downloadPoster()">Download as Image</button>
                 <button class="copy-btn" onclick="copyToClipboard()">Copy to Clipboard</button>
             </div>
-        </div>
+        </details>
     </div>
 
     <script src="script.js"></script>

@@ -90,14 +90,7 @@ header .subtitle {
     font-size: 0.85rem;
 }
 
-/* Manual Section */
-.manual-section {
-    background: #fff;
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 30px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-}
+/* Manual Section - uses .collapsible-section for base styles */
 
 /* Embed Container */
 .embed-container {
@@ -118,10 +111,73 @@ header .subtitle {
     max-width: 100%;
 }
 
-.manual-section h3 {
-    margin-bottom: 16px;
-    color: #333;
+/* Embed QR Code Section */
+.embed-qr-section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.embed-qr-code {
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.embed-qr-code canvas,
+.embed-qr-code img {
+    width: 120px !important;
+    height: 120px !important;
+}
+
+.embed-qr-label {
+    font-size: 0.85rem;
+    color: #8e8e8e;
+}
+
+/* Collapsible Sections */
+.collapsible-section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.collapsible-header {
     font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+}
+
+.collapsible-header::-webkit-details-marker {
+    display: none;
+}
+
+.collapsible-header::after {
+    content: '\25B6';
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+    color: #888;
+}
+
+details[open] > .collapsible-header::after {
+    transform: rotate(90deg);
+}
+
+details[open] > .collapsible-header {
+    margin-bottom: 16px;
 }
 
 .form-grid {
@@ -179,20 +235,9 @@ header .subtitle {
     background: #555;
 }
 
-/* Poster Wrapper */
+/* Poster Wrapper - uses .collapsible-section for base styles */
 .poster-wrapper {
-    background: #fff;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     position: relative;
-}
-
-.poster-wrapper h3 {
-    margin-bottom: 20px;
-    color: #333;
-    font-size: 1.1rem;
-    text-align: center;
 }
 
 /* Poster Styles */

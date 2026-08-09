@@ -81,7 +81,7 @@ function showInstagramEmbed(shortcode) {
     container.style.display = 'block';
 
     const iframe = document.createElement('iframe');
-    iframe.src = `https://www.instagram.com/p/${shortcode}/embed/`;
+    iframe.src = `https://www.instagram.com/p/${shortcode}/embed/captioned/`;
     iframe.id = 'instagram-embed-iframe';
     iframe.width = '100%';
     iframe.height = '480';
@@ -90,6 +90,38 @@ function showInstagramEmbed(shortcode) {
     iframe.allowTransparency = 'true';
     iframe.setAttribute('allow', 'encrypted-media');
     container.appendChild(iframe);
+}
+
+/**
+ * Generate QR code in the section below the embed iframe
+ * @param {string} url - The Instagram post URL
+ */
+let embedQrCodeInstance = null;
+function generateEmbedQRCode(url) {
+    const qrSection = document.getElementById('embed-qr-section');
+    const qrContainer = document.getElementById('embed-qr-code');
+    if (!qrSection || !qrContainer) return;
+
+    qrSection.style.display = 'block';
+    qrContainer.innerHTML = '';
+
+    if (embedQrCodeInstance) {
+        embedQrCodeInstance = null;
+    }
+
+    try {
+        embedQrCodeInstance = new QRCode(qrContainer, {
+            text: url,
+            width: 120,
+            height: 120,
+            colorDark: '#262626',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+    } catch (error) {
+        console.error('Embed QR Code generation failed:', error);
+        qrContainer.innerHTML = '<div style="width:120px;height:120px;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999;">QR Code</div>';
+    }
 }
 
 /**
@@ -153,6 +185,9 @@ async function generatePoster() {
         if (shortcode) {
             showInstagramEmbed(shortcode);
         }
+
+        // Generate QR code below the iframe
+        generateEmbedQRCode(url);
 
         // Attempt to fetch data via oEmbed endpoint
         const oEmbedData = await fetchOEmbedData(url);

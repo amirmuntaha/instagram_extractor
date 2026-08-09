@@ -76,11 +76,17 @@ test.describe('Instagram Post Poster Generator', () => {
   test('manual form input updates poster content', async ({ page }) => {
     await page.goto('/');
 
+    // Open the collapsed Post Details section
+    await page.click('details.manual-section > summary');
+
     // Fill in manual form fields
     await page.fill('#username', 'testuser');
     await page.fill('#caption', 'This is a test caption');
     await page.fill('#comments', 'commenter1: Nice photo!\ncommenter2: Awesome!');
     await page.fill('#likes', '1500');
+
+    // Open the collapsed Poster Preview section to check results
+    await page.click('details.poster-wrapper > summary');
 
     // Click Update Poster button
     await page.click('.update-btn');
@@ -104,6 +110,10 @@ test.describe('Instagram Post Poster Generator', () => {
   test('QR code generates after updating poster', async ({ page }) => {
     await page.goto('/');
 
+    // Open collapsed sections
+    await page.click('details.manual-section > summary');
+    await page.click('details.poster-wrapper > summary');
+
     // Fill in a URL and update
     await page.fill('#instagram-url', 'https://www.instagram.com/p/TEST123/');
     await page.fill('#username', 'qruser');
@@ -123,6 +133,9 @@ test.describe('Instagram Post Poster Generator', () => {
   test('download button exists and is enabled', async ({ page }) => {
     await page.goto('/');
 
+    // Open the collapsed Poster Preview section
+    await page.click('details.poster-wrapper > summary');
+
     const downloadBtn = page.locator('.download-btn');
     await expect(downloadBtn).toBeVisible();
     await expect(downloadBtn).toBeEnabled();
@@ -132,6 +145,9 @@ test.describe('Instagram Post Poster Generator', () => {
   test('copy to clipboard button exists and is enabled', async ({ page }) => {
     await page.goto('/');
 
+    // Open the collapsed Poster Preview section
+    await page.click('details.poster-wrapper > summary');
+
     const copyBtn = page.locator('.copy-btn');
     await expect(copyBtn).toBeVisible();
     await expect(copyBtn).toBeEnabled();
@@ -140,6 +156,9 @@ test.describe('Instagram Post Poster Generator', () => {
 
   test('spinner is visible during poster generation', async ({ page }) => {
     await page.goto('/');
+
+    // Open the collapsed Poster Preview section to access spinner
+    await page.click('details.poster-wrapper > summary');
 
     const spinner = page.locator('#spinner-overlay');
 
@@ -182,6 +201,9 @@ test.describe('Instagram Post Poster Generator', () => {
   test('theme selector applies correct class to poster', async ({ page }) => {
     await page.goto('/');
 
+    // Open the collapsed Poster Preview section
+    await page.click('details.poster-wrapper > summary');
+
     const poster = page.locator('#poster');
 
     // Default: no theme class applied
@@ -209,6 +231,10 @@ test.describe('Instagram Post Poster Generator', () => {
 
     // Grant clipboard permissions
     await context.grantPermissions(['clipboard-write', 'clipboard-read']);
+
+    // Open collapsed sections
+    await page.click('details.manual-section > summary');
+    await page.click('details.poster-wrapper > summary');
 
     // Fill in some data to have a poster to copy
     await page.fill('#username', 'clipuser');

@@ -148,9 +148,28 @@ function extractFromUrl(url) {
 }
 
 /**
+ * Wait for a video frame to be ready using requestVideoFrameCallback
+ * with a fallback to setTimeout for browsers that don't support it.
+ * @param {HTMLVideoElement} video
+ * @returns {Promise<void>}
+ */
+function waitForVideoFrame(video) {
+    return new Promise((resolve) => {
+        if ('requestVideoFrameCallback' in video) {
+            video.requestVideoFrameCallback(() => resolve());
+        } else {
+            setTimeout(resolve, 200);
+        }
+    });
+}
+
+/**
  * Download the poster capture area as a PNG image using Screen Capture API.
  * Captures the visible rendered content of the current tab (including cross-origin iframes)
  * and crops to the poster-capture-area element bounds.
+ *
+ * To ensure the entire poster fits in a single viewport frame, the page zoom is
+ * temporarily reduced before capture and restored afterwards.
  */
 async function downloadPoster() {
     const captureArea = document.getElementById('poster-capture-area');
@@ -162,12 +181,35 @@ async function downloadPoster() {
         return;
     }
 
+    let originalZoom = '';
+
     try {
         // Request tab capture
         const stream = await navigator.mediaDevices.getDisplayMedia({
             video: { displaySurface: 'browser' },
             preferCurrentTab: true
         });
+
+        // Validate the captured surface is the current browser tab
+        const videoTrack = stream.getVideoTracks()[0];
+        const settings = videoTrack.getSettings();
+        if (settings.displaySurface && settings.displaySurface !== 'browser') {
+            stream.getTracks().forEach(track => track.stop());
+            alert('Please select the current browser tab when prompted. Other surfaces are not supported.');
+            return;
+        }
+
+        // Shrink the page so the entire poster fits in one viewport frame
+        originalZoom = document.documentElement.style.zoom || '';
+        const viewportHeight = window.innerHeight;
+        const posterHeight = captureArea.scrollHeight;
+        if (posterHeight > viewportHeight) {
+            const zoomLevel = (viewportHeight / posterHeight) * 0.95; // 95% to add margin
+            document.documentElement.style.zoom = String(zoomLevel);
+        }
+
+        // Scroll the poster element to the top of the viewport
+        captureArea.scrollIntoView({ block: 'start', behavior: 'instant' });
 
         // Create a video element to receive the stream
         const video = document.createElement('video');
@@ -178,10 +220,10 @@ async function downloadPoster() {
         });
         await video.play();
 
-        // Allow a brief moment for the frame to render
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        // Wait for a frame to be reliably painted
+        await waitForVideoFrame(video);
 
-        // Get the bounding rect of the poster capture area
+        // Get the bounding rect of the poster capture area (after zoom + scroll)
         const rect = captureArea.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
 
@@ -202,6 +244,9 @@ async function downloadPoster() {
         // Stop all tracks immediately after capturing
         stream.getTracks().forEach(track => track.stop());
 
+        // Restore original zoom
+        document.documentElement.style.zoom = originalZoom;
+
         // Convert to PNG and trigger download
         const dataUrl = canvas.toDataURL('image/png');
         const link = document.createElement('a');
@@ -210,6 +255,9 @@ async function downloadPoster() {
         link.click();
 
     } catch (error) {
+        // Restore zoom on error
+        document.documentElement.style.zoom = originalZoom;
+
         // If user cancelled the permission prompt, do nothing
         if (error.name === 'NotAllowedError') {
             return;

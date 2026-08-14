@@ -109,25 +109,6 @@ header .subtitle {
     max-width: 100%;
 }
 
-/* Caption/Comments Note */
-.embed-caption-note {
-    background: #fff;
-    border-radius: 16px;
-    padding: 16px 24px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-    max-width: 540px;
-    margin-left: auto;
-    margin-right: auto;
-    text-align: center;
-}
-
-.embed-caption-note p {
-    font-size: 0.9rem;
-    color: #555;
-    line-height: 1.5;
-}
-
 /* Embed QR Code Section */
 .embed-qr-section {
     background: #fff;
@@ -148,8 +129,8 @@ header .subtitle {
 
 .embed-qr-code canvas,
 .embed-qr-code img {
-    width: 120px !important;
-    height: 120px !important;
+    width: 180px !important;
+    height: 180px !important;
 }
 
 .embed-qr-label {
@@ -178,10 +159,6 @@ header .subtitle {
     }
 
     .embed-container {
-        max-width: 100%;
-    }
-
-    .embed-caption-note {
         max-width: 100%;
     }
 

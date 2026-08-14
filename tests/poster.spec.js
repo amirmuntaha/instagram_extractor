@@ -119,10 +119,10 @@ test.describe('Instagram Post Poster Generator', () => {
     expect(count).toBeGreaterThan(0);
   });
 
-  test('download button with "Capture & Download" text is visible after generating poster', async ({ page }) => {
+  test('download button is disabled with loading text initially, enabled after iframe loads', async ({ page }) => {
     await page.goto('/');
 
-    // Block Instagram embed requests
+    // Block Instagram embed requests and fulfill them to trigger the load event
     await page.route('**/instagram.com/p/*/embed/**', (route) => {
       route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
@@ -139,10 +139,13 @@ test.describe('Instagram Post Poster Generator', () => {
     // Download section should now be visible
     await expect(downloadSection).toBeVisible();
 
-    // Verify the download button has the correct text
+    // The download button should initially show loading text and be disabled
     const downloadBtn = page.locator('#download-btn');
     await expect(downloadBtn).toBeVisible();
-    await expect(downloadBtn).toHaveText('Capture & Download');
+
+    // Wait for the iframe load event to fire (route fulfills immediately so load fires quickly)
+    await expect(downloadBtn).toHaveText('Capture & Download', { timeout: 5000 });
+    await expect(downloadBtn).toBeEnabled();
   });
 
   test('download button shows alert when Screen Capture API is not supported', async ({ page }) => {
@@ -157,6 +160,10 @@ test.describe('Instagram Post Poster Generator', () => {
     await page.fill('#instagram-url', 'https://www.instagram.com/p/CAPTURE_TEST/');
     await page.click('#generate-btn');
     await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Wait for iframe to load and download button to be enabled
+    const downloadBtn = page.locator('#download-btn');
+    await expect(downloadBtn).toBeEnabled({ timeout: 5000 });
 
     // Set up a dialog handler to capture the alert message
     let dialogMessage = '';
@@ -187,7 +194,7 @@ test.describe('Instagram Post Poster Generator', () => {
       // We validate that the function checks the API, validates the surface, and doesn't alert.
       window.__capturePathReached = false;
       window.__surfaceValidationPassed = false;
-      window.__zoomApplied = false;
+      window.__transformApplied = false;
 
       const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia;
       navigator.mediaDevices.getDisplayMedia = async (constraints) => {
@@ -211,14 +218,11 @@ test.describe('Instagram Post Poster Generator', () => {
         return stream;
       };
 
-      // Observe zoom changes
-      const zoomDescriptor = Object.getOwnPropertyDescriptor(CSSStyleDeclaration.prototype, 'zoom') ||
-                             Object.getOwnPropertyDescriptor(HTMLElement.prototype.style.constructor.prototype, 'zoom');
-      // Use a MutationObserver-style approach: watch after capture starts
+      // Observe transform changes (using transform: scale() instead of zoom)
       const origScrollIntoView = Element.prototype.scrollIntoView;
       Element.prototype.scrollIntoView = function(...args) {
         if (this.id === 'poster-capture-area') {
-          window.__zoomApplied = true;
+          window.__transformApplied = true;
         }
         return origScrollIntoView.apply(this, args);
       };
@@ -235,6 +239,10 @@ test.describe('Instagram Post Poster Generator', () => {
     await page.fill('#instagram-url', 'https://www.instagram.com/p/CAPTURE_MOCK/');
     await page.click('#generate-btn');
     await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Wait for the iframe to load and download button to be enabled
+    const downloadBtn = page.locator('#download-btn');
+    await expect(downloadBtn).toBeEnabled({ timeout: 5000 });
 
     // Track alerts - none should fire for a successful capture
     let dialogAppeared = false;
@@ -289,6 +297,10 @@ test.describe('Instagram Post Poster Generator', () => {
     await page.fill('#instagram-url', 'https://www.instagram.com/p/SURFACE_TEST/');
     await page.click('#generate-btn');
     await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Wait for the iframe to load and download button to be enabled
+    const downloadBtn = page.locator('#download-btn');
+    await expect(downloadBtn).toBeEnabled({ timeout: 5000 });
 
     // Track alerts
     let dialogMessage = '';

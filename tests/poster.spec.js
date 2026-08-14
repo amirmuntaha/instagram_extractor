@@ -119,4 +119,87 @@ test.describe('Instagram Post Poster Generator', () => {
     expect(count).toBeGreaterThan(0);
   });
 
+  test('download button with "Capture & Download" text is visible after generating poster', async ({ page }) => {
+    await page.goto('/');
+
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
+    // Download section should be hidden initially
+    const downloadSection = page.locator('#download-section');
+    await expect(downloadSection).toBeHidden();
+
+    // Fill in a valid Instagram URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/DL_BTN_TEST/');
+    await page.click('#generate-btn');
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Download section should now be visible
+    await expect(downloadSection).toBeVisible();
+
+    // Verify the download button has the correct text
+    const downloadBtn = page.locator('#download-btn');
+    await expect(downloadBtn).toBeVisible();
+    await expect(downloadBtn).toHaveText('Capture & Download');
+  });
+
+  test('download button shows alert when Screen Capture API is not supported', async ({ page }) => {
+    await page.goto('/');
+
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
+    // Fill in a valid Instagram URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/CAPTURE_TEST/');
+    await page.click('#generate-btn');
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Set up a dialog handler to capture the alert message
+    let dialogMessage = '';
+    page.once('dialog', async (dialog) => {
+      dialogMessage = dialog.message();
+      await dialog.accept();
+    });
+
+    // Click the download button - in headless Chromium, getDisplayMedia is not supported
+    await page.click('#download-btn');
+
+    // Wait briefly for the dialog to fire
+    await page.waitForTimeout(500);
+
+    // Verify the dialog message indicates Screen Capture is not supported
+    expect(dialogMessage).toBeTruthy();
+    expect(
+      dialogMessage.includes('Screen capture is not supported') ||
+      dialogMessage.includes('manual screenshot')
+    ).toBe(true);
+  });
+
+  test('capture-hint text is displayed below the download button after poster generation', async ({ page }) => {
+    await page.goto('/');
+
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
+    // Capture hint should be hidden initially (inside download-section which is hidden)
+    const captureHint = page.locator('#download-section .capture-hint');
+    await expect(captureHint).toBeHidden();
+
+    // Fill in a valid Instagram URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/HINT_TEST/');
+    await page.click('#generate-btn');
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Verify the capture hint text is now visible
+    await expect(captureHint).toBeVisible();
+    await expect(captureHint).toContainText('Your browser will ask permission to capture this tab');
+    await expect(captureHint).toContainText('saved as a PNG image');
+  });
+
 });

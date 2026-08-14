@@ -8,8 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <!-- QR Code library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <!-- html2canvas for download -->
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 </head>
 <body>
     <div class="container">
@@ -42,7 +41,8 @@
 
         <!-- Download Button Section -->
         <div id="download-section" class="download-section" style="display:none;">
-            <button id="download-btn" onclick="downloadPoster()">Download as Image</button>
+            <button id="download-btn" onclick="downloadPoster()">Capture & Download</button>
+            <p class="capture-hint">Your browser will ask permission to capture this tab. The poster area will be saved as a PNG image.</p>
         </div>
     </div>
 

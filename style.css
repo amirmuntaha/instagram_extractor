@@ -164,6 +164,13 @@ header .subtitle {
     transform: translateY(0);
 }
 
+.capture-hint {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.4;
+}
+
 /* Loading State */
 .loading {
     opacity: 0.6;

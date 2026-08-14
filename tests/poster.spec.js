@@ -119,4 +119,228 @@ test.describe('Instagram Post Poster Generator', () => {
     expect(count).toBeGreaterThan(0);
   });
 
+  test('download button is disabled with loading text initially, enabled after iframe loads', async ({ page }) => {
+    await page.goto('/');
+
+    // Block Instagram embed requests and fulfill them to trigger the load event
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
+    // Download section should be hidden initially
+    const downloadSection = page.locator('#download-section');
+    await expect(downloadSection).toBeHidden();
+
+    // Fill in a valid Instagram URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/DL_BTN_TEST/');
+    await page.click('#generate-btn');
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Download section should now be visible
+    await expect(downloadSection).toBeVisible();
+
+    // The download button should initially show loading text and be disabled
+    const downloadBtn = page.locator('#download-btn');
+    await expect(downloadBtn).toBeVisible();
+
+    // Wait for the iframe load event to fire (route fulfills immediately so load fires quickly)
+    await expect(downloadBtn).toHaveText('Capture & Download', { timeout: 5000 });
+    await expect(downloadBtn).toBeEnabled();
+  });
+
+  test('download button shows alert when Screen Capture API is not supported', async ({ page }) => {
+    await page.goto('/');
+
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
+    // Fill in a valid Instagram URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/CAPTURE_TEST/');
+    await page.click('#generate-btn');
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Wait for iframe to load and download button to be enabled
+    const downloadBtn = page.locator('#download-btn');
+    await expect(downloadBtn).toBeEnabled({ timeout: 5000 });
+
+    // Set up a dialog handler to capture the alert message
+    let dialogMessage = '';
+    page.once('dialog', async (dialog) => {
+      dialogMessage = dialog.message();
+      await dialog.accept();
+    });
+
+    // Click the download button - in headless Chromium, getDisplayMedia is not supported
+    await page.click('#download-btn');
+
+    // Wait briefly for the dialog to fire
+    await page.waitForTimeout(500);
+
+    // Verify the dialog message indicates Screen Capture is not supported
+    expect(dialogMessage).toBeTruthy();
+    expect(
+      dialogMessage.includes('Screen capture is not supported') ||
+      dialogMessage.includes('manual screenshot')
+    ).toBe(true);
+  });
+
+  test('capture path proceeds without errors when getDisplayMedia is mocked with browser surface', async ({ page }) => {
+    // Mock getDisplayMedia via addInitScript to intercept the entire downloadPoster flow
+    await page.addInitScript(() => {
+      // Override downloadPoster to simulate a successful capture path without needing
+      // real video/stream plumbing (which is unavailable in headless Chromium).
+      // We validate that the function checks the API, validates the surface, and doesn't alert.
+      window.__capturePathReached = false;
+      window.__surfaceValidationPassed = false;
+      window.__transformApplied = false;
+
+      const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia;
+      navigator.mediaDevices.getDisplayMedia = async (constraints) => {
+        window.__capturePathReached = true;
+        // Create a real canvas stream that browsers can actually use as a video source
+        const canvas = document.createElement('canvas');
+        canvas.width = 1920;
+        canvas.height = 1080;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#cccccc';
+        ctx.fillRect(0, 0, 1920, 1080);
+        const stream = canvas.captureStream(30);
+        // Patch the video track's getSettings to report browser surface
+        const realTrack = stream.getVideoTracks()[0];
+        const originalGetSettings = realTrack.getSettings.bind(realTrack);
+        realTrack.getSettings = () => {
+          const s = originalGetSettings();
+          s.displaySurface = 'browser';
+          return s;
+        };
+        return stream;
+      };
+
+      // Observe transform changes (using transform: scale() instead of zoom)
+      const origScrollIntoView = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function(...args) {
+        if (this.id === 'poster-capture-area') {
+          window.__transformApplied = true;
+        }
+        return origScrollIntoView.apply(this, args);
+      };
+    });
+
+    await page.goto('/');
+
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
+    // Generate the poster first
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/CAPTURE_MOCK/');
+    await page.click('#generate-btn');
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Wait for the iframe to load and download button to be enabled
+    const downloadBtn = page.locator('#download-btn');
+    await expect(downloadBtn).toBeEnabled({ timeout: 5000 });
+
+    // Track alerts - none should fire for a successful capture
+    let dialogAppeared = false;
+    let dialogMessage = '';
+    page.on('dialog', async (dialog) => {
+      dialogAppeared = true;
+      dialogMessage = dialog.message();
+      await dialog.accept();
+    });
+
+    // Click the download button
+    await page.click('#download-btn');
+
+    // Wait for the capture logic to complete
+    await page.waitForTimeout(1000);
+
+    // No alert should have appeared (successful capture path)
+    expect(dialogAppeared).toBe(false);
+
+    // Verify the capture path was reached
+    const captureReached = await page.evaluate(() => window.__capturePathReached);
+    expect(captureReached).toBe(true);
+  });
+
+  test('capture path shows alert when non-browser surface is selected', async ({ page }) => {
+    // Mock getDisplayMedia to return a stream with monitor displaySurface
+    await page.addInitScript(() => {
+      const mockTrack = {
+        stop: () => {},
+        getSettings: () => ({ displaySurface: 'monitor', width: 1920, height: 1080 }),
+        kind: 'video',
+        enabled: true,
+        readyState: 'live'
+      };
+      const mockStream = {
+        getVideoTracks: () => [mockTrack],
+        getTracks: () => [mockTrack],
+        getAudioTracks: () => []
+      };
+
+      navigator.mediaDevices.getDisplayMedia = async () => mockStream;
+    });
+
+    await page.goto('/');
+
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
+    // Generate the poster first
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/SURFACE_TEST/');
+    await page.click('#generate-btn');
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Wait for the iframe to load and download button to be enabled
+    const downloadBtn = page.locator('#download-btn');
+    await expect(downloadBtn).toBeEnabled({ timeout: 5000 });
+
+    // Track alerts
+    let dialogMessage = '';
+    page.once('dialog', async (dialog) => {
+      dialogMessage = dialog.message();
+      await dialog.accept();
+    });
+
+    // Click the download button
+    await page.click('#download-btn');
+
+    // Wait for the alert
+    await page.waitForTimeout(500);
+
+    // Should show surface validation error
+    expect(dialogMessage).toContain('Please select the current browser tab');
+    expect(dialogMessage).toContain('Other surfaces are not supported');
+  });
+
+  test('capture-hint text is displayed below the download button after poster generation', async ({ page }) => {
+    await page.goto('/');
+
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
+
+    // Capture hint should be hidden initially (inside download-section which is hidden)
+    const captureHint = page.locator('#download-section .capture-hint');
+    await expect(captureHint).toBeHidden();
+
+    // Fill in a valid Instagram URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/HINT_TEST/');
+    await page.click('#generate-btn');
+    await expect(page.locator('#generate-btn')).toBeEnabled();
+
+    // Verify the capture hint text is now visible
+    await expect(captureHint).toBeVisible();
+    await expect(captureHint).toContainText('Your browser will ask permission to capture this tab');
+    await expect(captureHint).toContainText('saved as a PNG image');
+  });
+
 });

@@ -90,16 +90,19 @@ header .subtitle {
     font-size: 0.85rem;
 }
 
-/* Embed Container */
-.embed-container {
+/* Poster Capture Area - seamless card wrapping iframe and QR */
+.poster-capture-area {
     background: #fff;
     border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     max-width: 540px;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0 auto 20px auto;
+    overflow: hidden;
+}
+
+/* Embed Container */
+.embed-container {
+    padding: 24px 24px 0 24px;
     text-align: center;
 }
 
@@ -111,31 +114,54 @@ header .subtitle {
 
 /* Embed QR Code Section */
 .embed-qr-section {
-    background: #fff;
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-    max-width: 540px;
-    margin-left: auto;
-    margin-right: auto;
+    padding: 16px 24px 24px 24px;
     text-align: center;
 }
 
 .embed-qr-code {
     display: inline-block;
     margin-bottom: 10px;
+    width: 85%;
 }
 
 .embed-qr-code canvas,
 .embed-qr-code img {
-    width: 180px !important;
-    height: 180px !important;
+    width: 100% !important;
+    height: auto !important;
 }
 
 .embed-qr-label {
     font-size: 0.85rem;
     color: #8e8e8e;
+}
+
+/* Download Section */
+.download-section {
+    max-width: 540px;
+    margin: 0 auto 20px auto;
+    text-align: center;
+}
+
+#download-btn {
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+}
+
+#download-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+#download-btn:active {
+    transform: translateY(0);
 }
 
 /* Loading State */
@@ -158,11 +184,11 @@ header .subtitle {
         flex-direction: column;
     }
 
-    .embed-container {
+    .poster-capture-area {
         max-width: 100%;
     }
 
-    .embed-qr-section {
+    .download-section {
         max-width: 100%;
     }
 }

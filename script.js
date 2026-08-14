@@ -31,7 +31,6 @@ function showInstagramEmbed(shortcode) {
     if (!container) return;
 
     container.innerHTML = '';
-    container.style.display = 'block';
 
     const iframe = document.createElement('iframe');
     iframe.src = `https://www.instagram.com/p/${shortcode}/embed/captioned/`;
@@ -55,7 +54,6 @@ function generateQRCode(url) {
     const qrContainer = document.getElementById('embed-qr-code');
     if (!qrSection || !qrContainer) return;
 
-    qrSection.style.display = 'block';
     qrContainer.innerHTML = '';
 
     if (embedQrCodeInstance) {
@@ -65,15 +63,15 @@ function generateQRCode(url) {
     try {
         embedQrCodeInstance = new QRCode(qrContainer, {
             text: url,
-            width: 180,
-            height: 180,
+            width: 400,
+            height: 400,
             colorDark: '#262626',
             colorLight: '#ffffff',
             correctLevel: QRCode.CorrectLevel.M
         });
     } catch (error) {
         console.error('QR Code generation failed:', error);
-        qrContainer.innerHTML = '<div style="width:180px;height:180px;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999;">QR Code</div>';
+        qrContainer.innerHTML = '<div style="width:100%;aspect-ratio:1;border:1px solid #ddd;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999;">QR Code</div>';
     }
 }
 
@@ -101,6 +99,10 @@ async function generatePoster() {
         // Extract shortcode from URL
         const { shortcode } = extractFromUrl(url);
 
+        // Show the poster capture area
+        const posterArea = document.getElementById('poster-capture-area');
+        if (posterArea) posterArea.style.display = 'block';
+
         // Show Instagram embed iframe as visual reference (with captioned content)
         if (shortcode) {
             showInstagramEmbed(shortcode);
@@ -108,6 +110,10 @@ async function generatePoster() {
 
         // Generate QR code below the iframe
         generateQRCode(url);
+
+        // Show the download button
+        const downloadSection = document.getElementById('download-section');
+        if (downloadSection) downloadSection.style.display = 'block';
 
     } catch (error) {
         console.error('Error generating poster:', error);
@@ -139,6 +145,34 @@ function extractFromUrl(url) {
         shortcode: shortcode,
         url: url
     };
+}
+
+/**
+ * Download the poster capture area as a PNG image using html2canvas
+ */
+function downloadPoster() {
+    const captureArea = document.getElementById('poster-capture-area');
+    if (!captureArea) return;
+
+    if (typeof html2canvas === 'undefined') {
+        alert('html2canvas library is not loaded. Please check your internet connection.');
+        return;
+    }
+
+    html2canvas(captureArea, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        scale: 2
+    }).then(function(canvas) {
+        const link = document.createElement('a');
+        link.download = 'instagram-poster.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }).catch(function(error) {
+        console.error('Download failed:', error);
+        alert('Failed to generate image. Please try again.');
+    });
 }
 
 /**

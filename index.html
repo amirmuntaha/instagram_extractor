@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- QR Code library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- html2canvas for download -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -25,14 +27,22 @@
             <p class="hint">Paste a public Instagram post URL above to view the embedded post with captions and comments.</p>
         </div>
 
-        <!-- Embed Container (Instagram embed iframe will appear here) -->
-        <div id="embed-container" class="embed-container" style="display:none;">
+        <!-- Poster Capture Area (seamless iframe + QR block) -->
+        <div id="poster-capture-area" class="poster-capture-area" style="display:none;">
+            <!-- Embed Container (Instagram embed iframe will appear here) -->
+            <div id="embed-container" class="embed-container">
+            </div>
+
+            <!-- QR Code Section (below iframe, seamless) -->
+            <div id="embed-qr-section" class="embed-qr-section">
+                <div id="embed-qr-code" class="embed-qr-code"></div>
+                <p class="embed-qr-label">Scan to view original post</p>
+            </div>
         </div>
 
-        <!-- QR Code Section (below iframe) -->
-        <div id="embed-qr-section" class="embed-qr-section" style="display:none;">
-            <div id="embed-qr-code" class="embed-qr-code"></div>
-            <p class="embed-qr-label">Scan to view original post</p>
+        <!-- Download Button Section -->
+        <div id="download-section" class="download-section" style="display:none;">
+            <button id="download-btn" onclick="downloadPoster()">Download as Image</button>
         </div>
     </div>
 

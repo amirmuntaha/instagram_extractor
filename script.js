@@ -148,31 +148,76 @@ function extractFromUrl(url) {
 }
 
 /**
- * Download the poster capture area as a PNG image using html2canvas
+ * Download the poster capture area as a PNG image using Screen Capture API.
+ * Captures the visible rendered content of the current tab (including cross-origin iframes)
+ * and crops to the poster-capture-area element bounds.
  */
-function downloadPoster() {
+async function downloadPoster() {
     const captureArea = document.getElementById('poster-capture-area');
     if (!captureArea) return;
 
-    if (typeof html2canvas === 'undefined') {
-        alert('html2canvas library is not loaded. Please check your internet connection.');
+    // Check for Screen Capture API support
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        alert('Screen capture is not supported in your browser. Please take a manual screenshot instead.');
         return;
     }
 
-    html2canvas(captureArea, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        scale: 2
-    }).then(function(canvas) {
+    try {
+        // Request tab capture
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: { displaySurface: 'browser' },
+            preferCurrentTab: true
+        });
+
+        // Create a video element to receive the stream
+        const video = document.createElement('video');
+        video.srcObject = stream;
+
+        await new Promise((resolve) => {
+            video.onloadedmetadata = resolve;
+        });
+        await video.play();
+
+        // Allow a brief moment for the frame to render
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // Get the bounding rect of the poster capture area
+        const rect = captureArea.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+
+        // Calculate source coordinates (the video frame is at device pixel resolution)
+        const sx = rect.left * dpr;
+        const sy = rect.top * dpr;
+        const sw = rect.width * dpr;
+        const sh = rect.height * dpr;
+
+        // Create canvas sized to the element dimensions at device pixel resolution
+        const canvas = document.createElement('canvas');
+        canvas.width = sw;
+        canvas.height = sh;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
+
+        // Stop all tracks immediately after capturing
+        stream.getTracks().forEach(track => track.stop());
+
+        // Convert to PNG and trigger download
+        const dataUrl = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.download = 'instagram-poster.png';
-        link.href = canvas.toDataURL('image/png');
+        link.href = dataUrl;
         link.click();
-    }).catch(function(error) {
-        console.error('Download failed:', error);
-        alert('Failed to generate image. Please try again.');
-    });
+
+    } catch (error) {
+        // If user cancelled the permission prompt, do nothing
+        if (error.name === 'NotAllowedError') {
+            return;
+        }
+        // For other errors, show fallback message
+        console.error('Screen capture failed:', error);
+        alert('Screen capture failed. Please take a manual screenshot of the poster area instead.');
+    }
 }
 
 /**

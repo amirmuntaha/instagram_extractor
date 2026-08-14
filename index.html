@@ -8,14 +8,12 @@
     <link rel="stylesheet" href="style.css">
     <!-- QR Code library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <!-- html2canvas for downloading poster as image -->
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>Instagram Post Poster Generator</h1>
-            <p class="subtitle">Turn any Instagram post into a beautiful poster image</p>
+            <p class="subtitle">View any Instagram post with captions and comments</p>
         </header>
 
         <!-- Input Section -->
@@ -24,11 +22,16 @@
                 <input type="text" id="instagram-url" placeholder="Paste Instagram post URL (e.g., https://www.instagram.com/p/ABC123/)" />
                 <button id="generate-btn" onclick="generatePoster()">Generate Poster</button>
             </div>
-            <p class="hint">Paste a public Instagram post URL above, or fill in the details manually below.</p>
+            <p class="hint">Paste a public Instagram post URL above to view the embedded post with captions and comments.</p>
         </div>
 
         <!-- Embed Container (Instagram embed iframe will appear here) -->
         <div id="embed-container" class="embed-container" style="display:none;">
+        </div>
+
+        <!-- Caption/Comments Note -->
+        <div id="embed-caption-note" class="embed-caption-note" style="display:none;">
+            <p>Captions and top comments are displayed in the embedded post above. Scroll within the embed to see the full content.</p>
         </div>
 
         <!-- QR Code Section (below iframe) -->
@@ -36,123 +39,6 @@
             <div id="embed-qr-code" class="embed-qr-code"></div>
             <p class="embed-qr-label">Scan to view original post</p>
         </div>
-
-        <!-- Manual Input Section (collapsible, folded by default) -->
-        <details class="collapsible-section manual-section">
-            <summary class="collapsible-header">Post Details</summary>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="@username" />
-                </div>
-                <div class="form-group">
-                    <label for="post-image">Image URL</label>
-                    <input type="text" id="post-image" placeholder="Direct image URL (optional)" />
-                </div>
-                <div class="form-group full-width">
-                    <label for="caption">Caption</label>
-                    <textarea id="caption" rows="3" placeholder="Post caption..."></textarea>
-                </div>
-                <div class="form-group full-width">
-                    <label for="comments">Top Comments (one per line, format: username: comment)</label>
-                    <textarea id="comments" rows="4" placeholder="user1: Great post!&#10;user2: Love this!&#10;user3: Amazing content!"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="likes">Likes Count</label>
-                    <input type="text" id="likes" placeholder="e.g., 1,234" />
-                </div>
-                <div class="form-group">
-                    <label for="post-date">Date</label>
-                    <input type="text" id="post-date" placeholder="e.g., January 5, 2025" />
-                </div>
-            </div>
-            <button class="update-btn" onclick="updatePoster()">Update Poster</button>
-        </details>
-
-        <!-- Poster Preview (collapsible, folded by default) -->
-        <details class="collapsible-section poster-wrapper">
-            <summary class="collapsible-header">Poster Preview</summary>
-
-            <!-- Theme Selector -->
-            <div class="theme-selector">
-                <label for="theme-select">Theme:</label>
-                <select id="theme-select" onchange="applyTheme()">
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                    <option value="gradient">Gradient</option>
-                </select>
-            </div>
-
-            <div class="poster-container">
-                <!-- Loading Spinner Overlay -->
-                <div id="spinner-overlay" class="spinner-overlay hidden">
-                    <div class="spinner"></div>
-                </div>
-
-                <div id="poster" class="poster">
-                <div class="poster-header">
-                    <div class="poster-avatar">
-                        <div class="avatar-placeholder" id="avatar-display">?</div>
-                    </div>
-                    <div class="poster-user-info">
-                        <span class="poster-username" id="poster-username">@username</span>
-                        <span class="poster-date" id="poster-date">Date</span>
-                    </div>
-                    <div class="instagram-badge">
-                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                            <circle cx="12" cy="12" r="5"></circle>
-                            <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"></circle>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="poster-image-container">
-                    <div class="poster-image-placeholder" id="poster-image-area">
-                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#999" stroke-width="1.5">
-                            <rect x="2" y="2" width="20" height="20" rx="2"></rect>
-                            <circle cx="8" cy="8" r="2"></circle>
-                            <path d="M2 16l5-5 3 3 5-5 7 7"></path>
-                        </svg>
-                        <p>Post Image</p>
-                    </div>
-                </div>
-
-                <div class="poster-stats">
-                    <span id="poster-likes">0 likes</span>
-                </div>
-
-                <div class="poster-caption">
-                    <p id="poster-caption"><strong>@username</strong> Caption will appear here...</p>
-                </div>
-
-                <div class="poster-comments" id="poster-comments">
-                    <div class="comment">
-                        <p><strong>user1</strong> Great post!</p>
-                    </div>
-                    <div class="comment">
-                        <p><strong>user2</strong> Love this!</p>
-                    </div>
-                    <div class="comment">
-                        <p><strong>user3</strong> Amazing!</p>
-                    </div>
-                </div>
-
-                <div class="poster-footer">
-                    <div class="qr-code" id="qr-code"></div>
-                    <div class="poster-footer-text">
-                        <p>Scan to view original post</p>
-                        <p class="poster-url" id="poster-url">instagram.com/p/...</p>
-                    </div>
-                </div>
-            </div>
-            </div>
-
-            <div class="download-section">
-                <button class="download-btn" onclick="downloadPoster()">Download as Image</button>
-                <button class="copy-btn" onclick="copyToClipboard()">Copy to Clipboard</button>
-            </div>
-        </details>
     </div>
 
     <script src="script.js"></script>

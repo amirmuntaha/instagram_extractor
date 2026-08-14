@@ -38,7 +38,7 @@ test.describe('Instagram Post Poster Generator', () => {
     expect(dialogMessage).toContain('valid Instagram post URL');
   });
 
-  test('no error for valid Instagram URL', async ({ page }) => {
+  test('no error for valid Instagram URL and embed iframe appears', async ({ page }) => {
     await page.goto('/');
 
     // Mock the oEmbed endpoint
@@ -46,7 +46,7 @@ test.describe('Instagram Post Poster Generator', () => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ author_name: 'user', title: '', thumbnail_url: '' })
+        body: JSON.stringify({ author_name: 'user', title: 'A caption', thumbnail_url: '' })
       });
     });
 
@@ -71,110 +71,22 @@ test.describe('Instagram Post Poster Generator', () => {
 
     // No alert should have appeared
     expect(dialogAppeared).toBe(false);
+
+    // Verify embed container is visible with iframe
+    const embedContainer = page.locator('#embed-container');
+    await expect(embedContainer).toBeVisible();
+
+    const iframe = page.locator('#instagram-embed-iframe');
+    await expect(iframe).toBeAttached();
+    const src = await iframe.getAttribute('src');
+    expect(src).toContain('ABC123');
+    expect(src).toContain('/embed/captioned/');
   });
 
-  test('manual form input updates poster content', async ({ page }) => {
+  test('embed iframe has sufficient height for captions and comments', async ({ page }) => {
     await page.goto('/');
 
-    // Open the collapsed Post Details section
-    await page.click('details.manual-section > summary');
-
-    // Fill in manual form fields
-    await page.fill('#username', 'testuser');
-    await page.fill('#caption', 'This is a test caption');
-    await page.fill('#comments', 'commenter1: Nice photo!\ncommenter2: Awesome!');
-    await page.fill('#likes', '1500');
-
-    // Open the collapsed Poster Preview section to check results
-    await page.click('details.poster-wrapper > summary');
-
-    // Click Update Poster button
-    await page.click('.update-btn');
-
-    // Verify poster content is updated
-    const username = page.locator('#poster-username');
-    await expect(username).toHaveText('@testuser');
-
-    const caption = page.locator('#poster-caption');
-    await expect(caption).toContainText('This is a test caption');
-
-    const likes = page.locator('#poster-likes');
-    await expect(likes).toContainText('1,500 likes');
-
-    // Verify comments are displayed
-    const comments = page.locator('#poster-comments');
-    await expect(comments).toContainText('commenter1');
-    await expect(comments).toContainText('Nice photo!');
-  });
-
-  test('QR code generates after updating poster', async ({ page }) => {
-    await page.goto('/');
-
-    // Open collapsed sections
-    await page.click('details.manual-section > summary');
-    await page.click('details.poster-wrapper > summary');
-
-    // Fill in a URL and update
-    await page.fill('#instagram-url', 'https://www.instagram.com/p/TEST123/');
-    await page.fill('#username', 'qruser');
-
-    // Click Update Poster
-    await page.click('.update-btn');
-
-    // Wait for QR code canvas or img to appear (deterministic)
-    const qrChild = page.locator('#qr-code canvas, #qr-code img');
-    await expect(qrChild.first()).toBeAttached();
-
-    // Verify the canvas has been rendered
-    const count = await qrChild.count();
-    expect(count).toBeGreaterThan(0);
-  });
-
-  test('download button exists and is enabled', async ({ page }) => {
-    await page.goto('/');
-
-    // Open the collapsed Poster Preview section
-    await page.click('details.poster-wrapper > summary');
-
-    const downloadBtn = page.locator('.download-btn');
-    await expect(downloadBtn).toBeVisible();
-    await expect(downloadBtn).toBeEnabled();
-    await expect(downloadBtn).toHaveText('Download as Image');
-  });
-
-  test('copy to clipboard button exists and is enabled', async ({ page }) => {
-    await page.goto('/');
-
-    // Open the collapsed Poster Preview section
-    await page.click('details.poster-wrapper > summary');
-
-    const copyBtn = page.locator('.copy-btn');
-    await expect(copyBtn).toBeVisible();
-    await expect(copyBtn).toBeEnabled();
-    await expect(copyBtn).toHaveText('Copy to Clipboard');
-  });
-
-  test('spinner is visible during poster generation', async ({ page }) => {
-    await page.goto('/');
-
-    // Open the collapsed Poster Preview section to access spinner
-    await page.click('details.poster-wrapper > summary');
-
-    const spinner = page.locator('#spinner-overlay');
-
-    // Verify spinner is initially hidden
-    await expect(spinner).toHaveClass(/hidden/);
-
-    // Directly invoke showSpinner to verify the mechanism works
-    await page.evaluate(() => showSpinner());
-    await expect(spinner).not.toHaveClass(/hidden/);
-    await expect(spinner).toBeVisible();
-
-    // Now hide it and verify
-    await page.evaluate(() => hideSpinner());
-    await expect(spinner).toHaveClass(/hidden/);
-
-    // Mock oEmbed and embed so generate can complete
+    // Mock the oEmbed endpoint
     await page.route('**/api.instagram.com/oembed/**', (route) => {
       route.fulfill({
         status: 200,
@@ -182,76 +94,55 @@ test.describe('Instagram Post Poster Generator', () => {
         body: JSON.stringify({ author_name: 'user', title: '', thumbnail_url: '' })
       });
     });
+
+    // Block Instagram embed requests
     await page.route('**/instagram.com/p/*/embed/**', (route) => {
       route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
 
-    // Also verify that generatePoster triggers the spinner lifecycle
-    // by checking the button state change (which happens alongside spinner)
-    await page.fill('#instagram-url', 'https://www.instagram.com/p/ABC123/');
+    // Fill in a valid Instagram URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/HEIGHT_TEST/');
     await page.click('#generate-btn');
-
-    // The button should be disabled while generating, then re-enabled
     await expect(page.locator('#generate-btn')).toBeEnabled();
 
-    // After generation completes, spinner should be hidden
-    await expect(spinner).toHaveClass(/hidden/);
+    // Verify the iframe height is at least 600px to show captions/comments
+    const iframe = page.locator('#instagram-embed-iframe');
+    const height = await iframe.getAttribute('height');
+    expect(parseInt(height)).toBeGreaterThanOrEqual(600);
   });
 
-  test('theme selector applies correct class to poster', async ({ page }) => {
+  test('QR code generates after entering valid URL', async ({ page }) => {
     await page.goto('/');
 
-    // Open the collapsed Poster Preview section
-    await page.click('details.poster-wrapper > summary');
+    // Mock the oEmbed endpoint
+    await page.route('**/api.instagram.com/oembed/**', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ author_name: 'qruser', title: 'QR test', thumbnail_url: '' })
+      });
+    });
 
-    const poster = page.locator('#poster');
+    // Block Instagram embed requests
+    await page.route('**/instagram.com/p/*/embed/**', (route) => {
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
+    });
 
-    // Default: no theme class applied
-    await expect(poster).not.toHaveClass(/theme-dark/);
-    await expect(poster).not.toHaveClass(/theme-gradient/);
+    // Fill in a URL and generate
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/QR_TEST/');
+    await page.click('#generate-btn');
+    await expect(page.locator('#generate-btn')).toBeEnabled();
 
-    // Select dark theme
-    await page.selectOption('#theme-select', 'dark');
-    await expect(poster).toHaveClass(/theme-dark/);
-    await expect(poster).not.toHaveClass(/theme-gradient/);
+    // Wait for QR code canvas or img to appear
+    const qrChild = page.locator('#embed-qr-code canvas, #embed-qr-code img');
+    await expect(qrChild.first()).toBeAttached();
 
-    // Select gradient theme
-    await page.selectOption('#theme-select', 'gradient');
-    await expect(poster).toHaveClass(/theme-gradient/);
-    await expect(poster).not.toHaveClass(/theme-dark/);
-
-    // Switch back to light theme
-    await page.selectOption('#theme-select', 'light');
-    await expect(poster).not.toHaveClass(/theme-dark/);
-    await expect(poster).not.toHaveClass(/theme-gradient/);
+    // Verify the canvas has been rendered
+    const count = await qrChild.count();
+    expect(count).toBeGreaterThan(0);
   });
 
-  test('copy to clipboard button shows copying state on click', async ({ page, context }) => {
-    await page.goto('/');
-
-    // Grant clipboard permissions
-    await context.grantPermissions(['clipboard-write', 'clipboard-read']);
-
-    // Open collapsed sections
-    await page.click('details.manual-section > summary');
-    await page.click('details.poster-wrapper > summary');
-
-    // Fill in some data to have a poster to copy
-    await page.fill('#username', 'clipuser');
-    await page.click('.update-btn');
-
-    const copyBtn = page.locator('.copy-btn');
-    await expect(copyBtn).toHaveText('Copy to Clipboard');
-
-    // Click the copy button and verify it transitions to "Copying..." state
-    await page.click('.copy-btn');
-    await expect(copyBtn).toHaveText('Copying...');
-
-    // Wait for the operation to complete - button should show "Copied!" or revert
-    await expect(copyBtn).not.toHaveText('Copying...', { timeout: 10000 });
-  });
-
-  test('autofill populates form fields when oEmbed fetch succeeds', async ({ page }) => {
+  test('success feedback is shown when oEmbed fetch succeeds', async ({ page }) => {
     await page.goto('/');
 
     // Mock the oEmbed endpoint to return valid data
@@ -267,7 +158,7 @@ test.describe('Instagram Post Poster Generator', () => {
       });
     });
 
-    // Block Instagram embed requests so the test doesn't wait for network
+    // Block Instagram embed requests
     await page.route('**/instagram.com/p/*/embed/**', (route) => {
       route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
@@ -279,24 +170,12 @@ test.describe('Instagram Post Poster Generator', () => {
     // Wait for the button to re-enable (generation complete)
     await expect(page.locator('#generate-btn')).toBeEnabled();
 
-    // Verify form fields are populated with oEmbed data
-    await expect(page.locator('#username')).toHaveValue('testcreator');
-    await expect(page.locator('#caption')).toHaveValue('Beautiful sunset over the ocean #nature #photography');
-    await expect(page.locator('#post-image')).toHaveValue('https://scontent.cdninstagram.com/v/t51.2885-15/test-image.jpg');
-
-    // Verify the poster displays the autofilled data
-    const username = page.locator('#poster-username');
-    await expect(username).toHaveText('@testcreator');
-
-    const caption = page.locator('#poster-caption');
-    await expect(caption).toContainText('Beautiful sunset over the ocean');
-
     // Verify success feedback message
     const feedback = page.locator('#fetch-feedback');
     await expect(feedback).toBeVisible();
-    await expect(feedback).toContainText('Successfully auto-filled');
+    await expect(feedback).toContainText('Successfully loaded');
 
-    // Verify embed container is also shown
+    // Verify embed container is shown
     const embedContainer = page.locator('#embed-container');
     await expect(embedContainer).toBeVisible();
 
@@ -339,19 +218,13 @@ test.describe('Instagram Post Poster Generator', () => {
     const src = await iframe.getAttribute('src');
     expect(src).toContain('DEGRADE_TEST');
 
-    // Verify guidance feedback message for manual fill
+    // Verify guidance feedback message
     const feedback = page.locator('#fetch-feedback');
     await expect(feedback).toBeVisible();
     await expect(feedback).toContainText('Could not auto-fill');
-    await expect(feedback).toContainText('fill in the details manually');
-
-    // Form fields should remain empty (not autofilled)
-    await expect(page.locator('#username')).toHaveValue('');
-    await expect(page.locator('#caption')).toHaveValue('');
-    await expect(page.locator('#post-image')).toHaveValue('');
   });
 
-  test('generate poster creates QR code with post URL', async ({ page }) => {
+  test('caption note is displayed below the embed', async ({ page }) => {
     await page.goto('/');
 
     // Mock the oEmbed endpoint
@@ -359,11 +232,7 @@ test.describe('Instagram Post Poster Generator', () => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          author_name: 'qruser',
-          title: 'QR test caption',
-          thumbnail_url: 'https://scontent.cdninstagram.com/v/test-qr.jpg'
-        })
+        body: JSON.stringify({ author_name: 'user', title: 'test', thumbnail_url: '' })
       });
     });
 
@@ -372,31 +241,15 @@ test.describe('Instagram Post Poster Generator', () => {
       route.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>embed</body></html>' });
     });
 
-    // Track page errors
-    const pageErrors = [];
-    page.on('pageerror', (error) => {
-      pageErrors.push(error.message);
-    });
-
     // Enter a valid Instagram URL
-    await page.fill('#instagram-url', 'https://www.instagram.com/p/QR_TEST/');
+    await page.fill('#instagram-url', 'https://www.instagram.com/p/CAPTION_NOTE/');
     await page.click('#generate-btn');
-
-    // Wait for the button to re-enable (generation complete)
     await expect(page.locator('#generate-btn')).toBeEnabled();
 
-    // Verify QR code is generated
-    const qrChild = page.locator('#qr-code canvas, #qr-code img');
-    await expect(qrChild.first()).toBeAttached();
-    const count = await qrChild.count();
-    expect(count).toBeGreaterThan(0);
-
-    // No page errors should have occurred
-    expect(pageErrors).toHaveLength(0);
-
-    // Verify the poster URL text was updated
-    const posterUrl = page.locator('#poster-url');
-    await expect(posterUrl).toContainText('QR_TEST');
+    // Verify caption note is visible
+    const captionNote = page.locator('#embed-caption-note');
+    await expect(captionNote).toBeVisible();
+    await expect(captionNote).toContainText('Captions and top comments are displayed');
   });
 
 });

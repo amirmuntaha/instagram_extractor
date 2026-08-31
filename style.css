@@ -153,6 +153,38 @@ body {
     min-height: 1px;
 }
 
+/* Guides hub list */
+.guide-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.guide-list li {
+    padding: 16px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.guide-list li:last-child {
+    border-bottom: none;
+}
+
+.guide-list li a {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #5a4b8a;
+    text-decoration: none;
+}
+
+.guide-list li a:hover {
+    text-decoration: underline;
+}
+
+.guide-list li p {
+    margin: 6px 0 0 0;
+    color: #555;
+}
+
 /* Site Footer */
 .site-footer {
     max-width: 900px;

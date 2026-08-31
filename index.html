@@ -4,13 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instagram Post Poster Generator</title>
+    <meta name="description" content="Free online Instagram Post Poster Generator: paste any public Instagram post URL to view it with captions and comments, generate a scannable QR code, and download a printable poster PNG. No login, no install, works in your browser.">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="style.css">
     <!-- QR Code library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- Google AdSense script placeholder: add ca-pub verification/script here when approved. Do NOT enable active ad code on this tool page. -->
 
 </head>
 <body>
+    <nav class="site-nav">
+        <a class="site-nav-brand" href="index.html">Poster Generator</a>
+        <ul>
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="guides/index.html">Guides</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><a href="privacy.html">Privacy Policy</a></li>
+        </ul>
+    </nav>
+
     <div class="container">
         <header>
             <h1>Instagram Post Poster Generator</h1>
@@ -44,6 +57,91 @@
             <button id="download-btn" onclick="downloadPoster()">Capture & Download</button>
             <p class="capture-hint">Your browser will ask permission to capture this tab. The poster area will be saved as a PNG image.</p>
         </div>
+
+        <!-- About / How it works -->
+        <section class="content-card">
+            <h2>About the Instagram Post Poster Generator</h2>
+            <p class="lead">The Instagram Post Poster Generator is a free, browser-based tool that turns any public Instagram post into a clean, shareable poster complete with a scannable QR code. It was built for creators, small businesses, event organizers, and educators who want to bring a digital post into the physical world without wrestling with screenshots, cropping tools, or design software.</p>
+            <p>Instagram is a wonderful place to publish photos, reels, and announcements, but it lives entirely inside an app. When you want to print a flyer, add a post to a slide deck, put a QR code on a shop window, or hand out a business card that links back to your latest campaign, there is no built-in way to do it. This tool bridges that gap. You paste a public post link, the post is embedded exactly as it appears on Instagram (including its caption and comments), and a matching QR code is generated so anyone can scan their way straight back to the original post.</p>
+
+            <h3>How it works</h3>
+            <p>Using the generator takes only a few seconds and requires no account, no download, and no personal information:</p>
+            <ol>
+                <li><strong>Copy a public Instagram post URL.</strong> Open the post on Instagram, tap the share or link option, and copy the address. It usually looks like <code>https://www.instagram.com/p/ABC123/</code>.</li>
+                <li><strong>Paste it into the box above</strong> and press <em>Generate Poster</em>. The tool validates the link to make sure it is a genuine Instagram post address.</li>
+                <li><strong>View the embedded post.</strong> The official Instagram embed loads in a tall, scroll-free frame so the image, caption, and top comments are all visible at once.</li>
+                <li><strong>Scan or print.</strong> A QR code appears beneath the post that points to the original URL, and the <em>Capture &amp; Download</em> button lets you save the whole poster as a PNG image using your browser's built-in screen capture.</li>
+            </ol>
+            <p>Everything happens locally in your browser. The tool simply arranges Instagram's own embed and a QR code on the page; it never stores your links, never asks you to log in, and never posts anything on your behalf.</p>
+        </section>
+
+        <!-- Features -->
+        <section class="content-card">
+            <h2>Features at a glance</h2>
+            <ul>
+                <li><strong>Faithful post preview.</strong> Posts are shown through Instagram's official captioned embed, so captions and comments look exactly the way your audience expects.</li>
+                <li><strong>Automatic QR code.</strong> A high-contrast QR code is generated for every post so viewers can jump to the original with a single scan, perfect for print.</li>
+                <li><strong>One-click poster download.</strong> Save the combined post-and-QR layout as a crisp PNG image, ready to drop into a flyer, slide, or social graphic.</li>
+                <li><strong>No account required.</strong> There is nothing to sign up for and nothing to install. Open the page and start immediately.</li>
+                <li><strong>Privacy friendly.</strong> Links are processed in your browser and are never uploaded to a server we control.</li>
+                <li><strong>Works on any device.</strong> The responsive layout adapts to phones, tablets, and desktops.</li>
+            </ul>
+        </section>
+
+        <!-- Use cases -->
+        <section class="content-card">
+            <h2>Popular ways people use it</h2>
+            <p>A poster with a QR code is a surprisingly versatile marketing and communication asset. Here are some of the most common scenarios our visitors tell us about:</p>
+            <h3>Retail and hospitality</h3>
+            <p>Cafes, boutiques, and restaurants print the poster and place it by the till or in the window so walk-in customers can scan and follow the latest promotion, menu, or giveaway on Instagram.</p>
+            <h3>Events and conferences</h3>
+            <p>Organizers add the poster to programs, name badges, and signage. Attendees scan the QR code to reach event highlights, speaker announcements, or the official hashtag feed.</p>
+            <h3>Education and community groups</h3>
+            <p>Teachers, clubs, and non-profits turn an important announcement into a printable handout, making it easy for parents or members who are not glued to their phones to still find the source.</p>
+            <h3>Content creators and brands</h3>
+            <p>Creators embed the poster in presentations, media kits, and pitch decks to showcase a standout post, or share the downloaded image across other channels where a live embed is not possible.</p>
+        </section>
+
+        <!-- FAQ -->
+        <section class="content-card">
+            <h2>Frequently asked questions</h2>
+
+            <div class="faq-item">
+                <p class="faq-question">Is the Instagram Post Poster Generator free to use?</p>
+                <p class="faq-answer">Yes. The tool is completely free, with no account, subscription, or hidden limits. Paste a link and generate as many posters as you like.</p>
+            </div>
+
+            <div class="faq-item">
+                <p class="faq-question">Which posts can I generate a poster for?</p>
+                <p class="faq-answer">Any public Instagram post works. Private accounts and posts that require a login cannot be embedded by Instagram, so they will not display here. This is a restriction set by Instagram, not by the tool.</p>
+            </div>
+
+            <div class="faq-item">
+                <p class="faq-question">Do you store the URLs I paste or the posts I view?</p>
+                <p class="faq-answer">No. Your link is used only in your browser to load Instagram's official embed and to build the QR code. Nothing is saved on a server we operate, and we never post to your account.</p>
+            </div>
+
+            <div class="faq-item">
+                <p class="faq-question">Why does the download button ask to capture my screen?</p>
+                <p class="faq-answer">Instagram embeds live inside a protected frame, so the tool uses your browser's built-in Screen Capture feature to snapshot the poster area and save it as a PNG. When prompted, choose the current browser tab. If your browser does not support screen capture, you can take a manual screenshot instead.</p>
+            </div>
+
+            <div class="faq-item">
+                <p class="faq-question">Can I use the generated poster commercially?</p>
+                <p class="faq-answer">The poster contains the original creator's content, so you should only reuse posts you own or have permission to share. Always respect Instagram's terms and the rights of the original poster.</p>
+            </div>
+        </section>
+
+        <footer class="site-footer">
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="guides/index.html">Guides</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="privacy.html">Privacy Policy</a></li>
+            </ul>
+            <p class="copyright">&copy; 2026 Instagram Post Poster Generator. Not affiliated with or endorsed by Instagram or Meta.</p>
+        </footer>
     </div>
 
     <script src="script.js"></script>

@@ -52,10 +52,12 @@ test.describe('Shared navigation on index.html', () => {
 });
 
 test.describe('Contact page', () => {
-  test('contact.html has a mailto: link', async ({ page }) => {
+  test('contact.html has a reachable GitHub issues contact link', async ({ page }) => {
     await page.goto('/contact.html');
-    const mailto = page.locator('a[href^="mailto:"]');
-    await expect(mailto).toBeVisible();
+    const contactLink = page.locator(
+      'a[href^="https://github.com/amirmuntaha/instagram_extractor/issues"]'
+    ).first();
+    await expect(contactLink).toBeVisible();
   });
 });
 

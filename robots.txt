@@ -1,0 +1,12 @@
+# robots.txt for the Instagram Post Poster Generator
+#
+# Note: This site is hosted on GitHub Pages as a project page under the
+# /instagram_extractor/ subpath. For GitHub project pages the authoritative
+# robots.txt is served from the domain root (https://amirmuntaha.github.io/robots.txt),
+# which this repository does not control. This file is included as good practice
+# and documents the intended crawling policy for the project.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://amirmuntaha.github.io/instagram_extractor/sitemap.xml
